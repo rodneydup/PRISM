@@ -1,8 +1,6 @@
-# KitchenSinc
+# PRISM-Dilate
 
-## Everything *including* the kitch sink
-
-This project will serve as a container full of random things made with JUCE. Anything can be added to the project. Nothing should be removed. It should become a monstrosity.
+Implementing Spectral Dilation as a JUCE standalone application and eventually a plugin.
 
 ## Building
 
