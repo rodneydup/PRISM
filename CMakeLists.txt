@@ -52,7 +52,9 @@ add_subdirectory(pedal)
 target_sources(${APP_NAME} PRIVATE
     src/Main.cpp
     src/MainComponent.cpp
-    src/audioSettingsComponent.cpp)
+    src/audioSettingsComponent.cpp
+    src/customProcessors/ToneGenerator.cpp 
+    )
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use

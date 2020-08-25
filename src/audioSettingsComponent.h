@@ -23,8 +23,8 @@ class audioSettingsComponent : public juce::Component,
 
   void resized() override;
 
-  juce::TextButton button;  // button to open Audio Settings window
-  juce::DialogWindow::LaunchOptions window; // dialog window containing Audio Settings
+  juce::TextButton button;                   // button to open Audio Settings window
+  juce::DialogWindow::LaunchOptions window;  // dialog window containing Audio Settings
 
  private:
   void changeListenerCallback(juce::ChangeBroadcaster*) override;

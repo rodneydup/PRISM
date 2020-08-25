@@ -1,12 +1,11 @@
 #include "audioSettingsComponent.h"
 //==============================================================================
-audioSettingsComponent::audioSettingsComponent(
-  juce::AudioDeviceManager& parentDeviceManager_)
+audioSettingsComponent::audioSettingsComponent(juce::AudioDeviceManager& parentDeviceManager_)
   : audioSetupComp(parentDeviceManager_,
                    0,       // minimum input channels
-                   256,     // maximum input channels
+                   8,       // maximum input channels
                    0,       // minimum output channels
-                   256,     // maximum output channels
+                   8,       // maximum output channels
                    false,   // ability to select midi inputs
                    false,   // ability to select midi output device
                    false,   // treat channels as stereo pairs
@@ -21,12 +20,9 @@ audioSettingsComponent::audioSettingsComponent(
   diagnosticsBox.setScrollbarsShown(true);
   diagnosticsBox.setCaretVisible(false);
   diagnosticsBox.setPopupMenuEnabled(true);
-  diagnosticsBox.setColour(juce::TextEditor::backgroundColourId,
-                           juce::Colour(0x32ffffff));
-  diagnosticsBox.setColour(juce::TextEditor::outlineColourId,
-                           juce::Colour(0x1c000000));
-  diagnosticsBox.setColour(juce::TextEditor::shadowColourId,
-                           juce::Colour(0x16000000));
+  diagnosticsBox.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x32ffffff));
+  diagnosticsBox.setColour(juce::TextEditor::outlineColourId, juce::Colour(0x1c000000));
+  diagnosticsBox.setColour(juce::TextEditor::shadowColourId, juce::Colour(0x16000000));
 
   cpuUsageLabel.setText("CPU Usage", juce::dontSendNotification);
   cpuUsageText.setJustificationType(juce::Justification::right);
@@ -58,8 +54,7 @@ audioSettingsComponent::~audioSettingsComponent() {
 }
 
 void audioSettingsComponent::paint(juce::Graphics& g) {
-  g.fillAll(
-    getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+  g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 }
 
 void audioSettingsComponent::resized() {
@@ -76,12 +71,9 @@ void audioSettingsComponent::resized() {
   diagnosticsBox.setBounds(rect);
 }
 
-void audioSettingsComponent::changeListenerCallback(juce::ChangeBroadcaster*) {
-  dumpDeviceInfo();
-}
+void audioSettingsComponent::changeListenerCallback(juce::ChangeBroadcaster*) { dumpDeviceInfo(); }
 
-juce::String audioSettingsComponent::getListOfActiveBits(
-  const juce::BigInteger& b) {
+juce::String audioSettingsComponent::getListOfActiveBits(const juce::BigInteger& b) {
   juce::StringArray bits;
 
   for (auto i = 0; i <= b.getHighestBit(); ++i)
@@ -97,28 +89,20 @@ void audioSettingsComponent::timerCallback() {
 
 void audioSettingsComponent::dumpDeviceInfo() {
   logMessage("--------------------------------------");
-  logMessage(
-    "Current audio device type: " +
-    (parentDeviceManager.getCurrentDeviceTypeObject() != nullptr
-       ? parentDeviceManager.getCurrentDeviceTypeObject()->getTypeName()
-       : "<none>"));
+  logMessage("Current audio device type: " +
+             (parentDeviceManager.getCurrentDeviceTypeObject() != nullptr
+                ? parentDeviceManager.getCurrentDeviceTypeObject()->getTypeName()
+                : "<none>"));
 
   if (auto* device = parentDeviceManager.getCurrentAudioDevice()) {
     logMessage("Current audio device: " + device->getName().quoted());
-    logMessage("Sample rate: " + juce::String(device->getCurrentSampleRate()) +
-               " Hz");
-    logMessage(
-      "Block size: " + juce::String(device->getCurrentBufferSizeSamples()) +
-      " samples");
+    logMessage("Sample rate: " + juce::String(device->getCurrentSampleRate()) + " Hz");
+    logMessage("Block size: " + juce::String(device->getCurrentBufferSizeSamples()) + " samples");
     logMessage("Bit depth: " + juce::String(device->getCurrentBitDepth()));
-    logMessage("Input channel names: " +
-               device->getInputChannelNames().joinIntoString(", "));
-    logMessage("Active input channels: " +
-               getListOfActiveBits(device->getActiveInputChannels()));
-    logMessage("Output channel names: " +
-               device->getOutputChannelNames().joinIntoString(", "));
-    logMessage("Active output channels: " +
-               getListOfActiveBits(device->getActiveOutputChannels()));
+    logMessage("Input channel names: " + device->getInputChannelNames().joinIntoString(", "));
+    logMessage("Active input channels: " + getListOfActiveBits(device->getActiveInputChannels()));
+    logMessage("Output channel names: " + device->getOutputChannelNames().joinIntoString(", "));
+    logMessage("Active output channels: " + getListOfActiveBits(device->getActiveOutputChannels()));
   } else {
     logMessage("No audio device open");
   }
