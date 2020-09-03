@@ -1,4 +1,4 @@
 #! /bin/sh
 
-cmake --build ./build -j 5
+cmake --build ./build -j 9
 ./bin/PRISM-Dilate

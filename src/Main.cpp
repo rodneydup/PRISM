@@ -1,4 +1,4 @@
-#include "MainComponent.h"
+#include "MainComponent.hpp"
 
 //==============================================================================
 class GuiAppApplication : public juce::JUCEApplication {
@@ -10,12 +10,8 @@ class GuiAppApplication : public juce::JUCEApplication {
   // If you've enabled the juce header with
   // `juce_generate_juce_header(<thisTarget>)` you could `#include
   // <JuceHeader.h>` and use `ProjectInfo::projectName` etc. instead.
-  const juce::String getApplicationName() override {
-    return JUCE_APPLICATION_NAME_STRING;
-  }
-  const juce::String getApplicationVersion() override {
-    return JUCE_APPLICATION_VERSION_STRING;
-  }
+  const juce::String getApplicationName() override { return JUCE_APPLICATION_NAME_STRING; }
+  const juce::String getApplicationVersion() override { return JUCE_APPLICATION_VERSION_STRING; }
   bool moreThanOneInstanceAllowed() override { return true; }
 
   //==============================================================================
@@ -56,12 +52,11 @@ class GuiAppApplication : public juce::JUCEApplication {
   class MainWindow : public juce::DocumentWindow {
    public:
     explicit MainWindow(juce::String name)
-      : DocumentWindow(
-          name,
-          juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(
-            ResizableWindow::backgroundColourId),
-          DocumentWindow::allButtons) {
-      setUsingNativeTitleBar(false);
+      : DocumentWindow(name,
+                       juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(
+                         ResizableWindow::backgroundColourId),
+                       DocumentWindow::allButtons) {
+      setUsingNativeTitleBar(true);
       setContentOwned(new MainComponent(), true);
 
 #if JUCE_IOS || JUCE_ANDROID

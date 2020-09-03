@@ -52,8 +52,10 @@ add_subdirectory(pedal)
 target_sources(${APP_NAME} PRIVATE
     src/Main.cpp
     src/MainComponent.cpp
-    src/audioSettingsComponent.cpp
+    src/customProcessors/AudioSettingsComponent.cpp
     src/customProcessors/ToneGenerator.cpp 
+    src/customProcessors/DilateComponent.cpp
+    src/customProcessors/SpectrogramComponent.cpp
     )
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
@@ -93,7 +95,8 @@ target_link_libraries(${APP_NAME} PRIVATE
     juce::juce_gui_basics
     juce::juce_audio_devices
     juce::juce_audio_utils
-    juce::juce_gui_extra)
+    juce::juce_gui_extra
+    juce::juce_dsp)
 
 # binaries are put into the ./bin directory by default
 set_target_properties(${APP_NAME} PROPERTIES

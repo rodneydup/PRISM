@@ -15,7 +15,7 @@ class audioSettingsComponent : public juce::Component,
                                public juce::ChangeListener,
                                private juce::Timer {
  public:
-  audioSettingsComponent(juce::AudioDeviceManager& ParentDeviceManager_);
+      audioSettingsComponent(juce::AudioDeviceManager& ParentDeviceManager_);
 
   ~audioSettingsComponent() override;
 

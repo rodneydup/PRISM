@@ -1,4 +1,4 @@
-#include "audioSettingsComponent.h"
+#include "AudioSettingsComponent.hpp"
 //==============================================================================
 audioSettingsComponent::audioSettingsComponent(juce::AudioDeviceManager& parentDeviceManager_)
   : audioSetupComp(parentDeviceManager_,
@@ -45,7 +45,7 @@ audioSettingsComponent::audioSettingsComponent(juce::AudioDeviceManager& parentD
   window.escapeKeyTriggersCloseButton = true;
   window.resizable = true;
   window.useBottomRightCornerResizer = true;
-  window.useNativeTitleBar = false;
+  window.useNativeTitleBar = true;
   window.content.set(this, false);
 }
 

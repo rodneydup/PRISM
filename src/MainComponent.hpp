@@ -7,19 +7,22 @@
 // your module headers visible.
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
-#include <juce_dsp/juce_dsp.h>
 // grab a trival sine wave
 #include "customProcessors/ToneGenerator.hpp"
 // our components
-#include "audioSettingsComponent.h"
+#include "customProcessors/AudioSettingsComponent.hpp"
+#include "customProcessors/DilateComponent.hpp"
+#include "customProcessors/SpectrogramComponent.hpp"
+
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent : public juce::Component {
+class MainComponent : public juce::Component, private juce::Timer {
  public:
   //==============================================================================
   MainComponent();
@@ -30,6 +33,8 @@ class MainComponent : public juce::Component {
   void paint(juce::Graphics&) override;
   void resized() override;
 
+  void timerCallback() override;
+
   TSine sineOsc;  // simple sine oscillator
 
  private:
@@ -39,11 +44,15 @@ class MainComponent : public juce::Component {
   std::unique_ptr<juce::AudioProcessorGraph> audioGraph;
   juce::AudioProcessorGraph::Node::Ptr audioInputNode;   // access to hardware input
   juce::AudioProcessorGraph::Node::Ptr audioOutputNode;  // access to hardware output
-  juce::AudioProcessorGraph::Node::Ptr testToneNode;
+  juce::AudioProcessorGraph::Node::Ptr testToneNode;     // Sine tone
+  juce::AudioProcessorGraph::Node::Ptr DilateNode;       // Spectral Dilate
+  juce::AudioProcessorGraph::Node::Ptr SpectrogramNode;  // Spectrogram
+
   // this DSP chain will be executed by the processorPlayer
   juce::AudioProcessorPlayer processorPlayer;
   // Audio Settings window for changing IO settings at runtime
   audioSettingsComponent audioSettings;
+
   // this is JUCE's convenience MACRO to make sure we don't make terrible, terrible mistakes with
   // our pointers
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
