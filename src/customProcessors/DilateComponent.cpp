@@ -6,7 +6,6 @@ DilateComponent::DilateComponent() {
     fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
   fifo.resize(fftSize);
   fftData.resize(fftSize * 2);
-  std::cout << fftSize << std::endl;
 
   addParameter(fftOrderMenu = new juce::AudioParameterChoice(
                  "fftOrderMenu", "FFT Order", {"64", "128", "256", "512", "1024", "2048", "4096"},
@@ -31,7 +30,10 @@ void DilateComponent::releaseResources() {}
 
 void DilateComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
                                    juce::MidiBuffer& midiBuffer) {
-  if (!bypass) {  // bypass variable stops from writing to fft arrays while they are being resized
+  if (*fftWindowMenu != windowType) changeWindowType(*fftWindowMenu);
+  if (*fftOrderMenu != fftOrder) changeOrder(*fftOrderMenu + 6);
+  if (!bypass) {  // bypass variable stops from writing to fft
+                  // arrays while they are being resized
     if (audioBuffer.getNumChannels() > 0) {
       float* channelData = audioBuffer.getWritePointer(0, 0);
       for (auto i = 0; i < audioBuffer.getNumSamples(); ++i) pushNextSampleIntoFifo(channelData[i]);
@@ -75,7 +77,6 @@ void DilateComponent::dilate() {
 
 void DilateComponent::changeOrder(int order) {
   // bypass to make sure we don't write new samples while the arrays are being resized.
-  bypass = true;
   int fftOrder = order;
   int fftSize = 1 << fftOrder;
   forwardFFT.reset(new juce::dsp::FFT(fftOrder));
@@ -83,13 +84,10 @@ void DilateComponent::changeOrder(int order) {
   fftData.resize(fftSize * 2);
   window.reset(new juce::dsp::WindowingFunction<float>(
     fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType)));
-  bypass = false;
 }
 
 void DilateComponent::changeWindowType(int type) {
-  bypass = true;
   windowType = type;
   window.reset(new juce::dsp::WindowingFunction<float>(
     fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType)));
-  bypass = false;
 }

@@ -48,7 +48,7 @@ MainComponent::MainComponent()
   spectrogramNode->getProcessor()->setPlayConfigDetails(
     1, 0, deviceManager.getAudioDeviceSetup().sampleRate,
     deviceManager.getAudioDeviceSetup().bufferSize);
-  audioGraph->addConnection({{audioInputNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});
+  // audioGraph->addConnection({{audioInputNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});
   // This is the best way I've found to get the editor and be able to display it. Just have your
   // mainComponent own a pointer to an editor, then point it to the editor when it's created.
   spectrogramEditor = spectrogramNode->getProcessor()->createEditor();
@@ -64,6 +64,7 @@ MainComponent::MainComponent()
                                                    deviceManager.getAudioDeviceSetup().bufferSize);
   audioGraph->addConnection({{audioInputNode->nodeID, 0}, {dilateNode->nodeID, 0}});
   audioGraph->addConnection({{dilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
+  audioGraph->addConnection({{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});
   dilateEditor = dilateNode->getProcessor()->createEditor();
 
   // audioSettings.button.setBounds(getLocalBounds().removeFromTop(50));
