@@ -30,7 +30,7 @@ class MainComponent : public juce::Component, private juce::Timer {
 
   // Graphics
   // stuff==============================================================================
-  void paint(juce::Graphics&) override;
+  void paint(juce::Graphics &) override;
   void resized() override;
 
   void timerCallback() override;
@@ -45,8 +45,10 @@ class MainComponent : public juce::Component, private juce::Timer {
   juce::AudioProcessorGraph::Node::Ptr audioInputNode;   // access to hardware input
   juce::AudioProcessorGraph::Node::Ptr audioOutputNode;  // access to hardware output
   juce::AudioProcessorGraph::Node::Ptr testToneNode;     // Sine tone
-  juce::AudioProcessorGraph::Node::Ptr DilateNode;       // Spectral Dilate
-  juce::AudioProcessorGraph::Node::Ptr SpectrogramNode;  // Spectrogram
+  juce::AudioProcessorGraph::Node::Ptr dilateNode;       // Spectral Dilate
+  juce::AudioProcessorEditor *dilateEditor;              // Spectral Dilate Editor
+  juce::AudioProcessorGraph::Node::Ptr spectrogramNode;  // Spectrogram
+  juce::AudioProcessorEditor *spectrogramEditor;         // Spectrogram editor
 
   // this DSP chain will be executed by the processorPlayer
   juce::AudioProcessorPlayer processorPlayer;

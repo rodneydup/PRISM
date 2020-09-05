@@ -4,7 +4,7 @@
 MainComponent::MainComponent()
   : audioGraph(std::make_unique<juce::AudioProcessorGraph>()), audioSettings(deviceManager) {
   setSize(800, 500);
-  startTimerHz(60);
+  startTimerHz(30);
 
   // tell the ProcessorPlayer what audio callback function to play (.get() needed since audioGraph
   // is a unique_ptr)
@@ -15,7 +15,8 @@ MainComponent::MainComponent()
   deviceManager.initialiseWithDefaultDevices(2, 2);
 
   // Set to Jack by default
-  // deviceManager.setCurrentAudioDeviceType("JACK", true);
+
+  deviceManager.setCurrentAudioDeviceType("JACK", true);
 
   // Tell the processor player to keep moving every time the device requests more data
   deviceManager.addAudioCallback(&processorPlayer);
@@ -42,34 +43,42 @@ MainComponent::MainComponent()
   // audioGraph->addConnection({{testToneNode->nodeID, 1}, {audioOutputNode->nodeID, 1}});
 
   // Spectrogram
-  SpectrogramNode = audioGraph->addNode(std::make_unique<SpectrogramComponent>());
+  spectrogramNode = audioGraph->addNode(std::make_unique<SpectrogramComponent>());
 
-  SpectrogramNode->getProcessor()->setPlayConfigDetails(
+  spectrogramNode->getProcessor()->setPlayConfigDetails(
     1, 0, deviceManager.getAudioDeviceSetup().sampleRate,
     deviceManager.getAudioDeviceSetup().bufferSize);
-  audioGraph->addConnection({{audioInputNode->nodeID, 0}, {SpectrogramNode->nodeID, 0}});
-  // audioGraph->addConnection({{audioInputNode->nodeID, 1}, {SpectrogramNode->nodeID, 1}});
-  auto* spectrogram = SpectrogramNode->getProcessor()->createEditor();
-  // spectrogram->setVisible(true);
+  audioGraph->addConnection({{audioInputNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});
+  // This is the best way I've found to get the editor and be able to display it. Just have your
+  // mainComponent own a pointer to an editor, then point it to the editor when it's created.
+  spectrogramEditor = spectrogramNode->getProcessor()->createEditor();
 
   // audioGraph->addConnection(
   //   {{audioInputNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});  // FEEDBACK CAREFUL
   // audioGraph->addConnection(
   //   {{audioInputNode->nodeID, 1}, {audioOutputNode->nodeID, 1}});  // FEEDBACK CAREFUL
 
-  // DilateNode = audioGraph->addNode(std::make_unique<DilateComponent>());
-  // DilateNode->getProcessor()->setPlayConfigDetails(
-  //   1, 1, deviceManager.getAudioDeviceSetup().sampleRate,
-  //   deviceManager.getAudioDeviceSetup().bufferSize);
-  // audioGraph->addConnection({{audioInputNode->nodeID, 0}, {DilateNode->nodeID, 0}});
-  // audioGraph->addConnection({{DilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
+  dilateNode = audioGraph->addNode(std::make_unique<DilateComponent>());
+  dilateNode->getProcessor()->setPlayConfigDetails(1, 1,
+                                                   deviceManager.getAudioDeviceSetup().sampleRate,
+                                                   deviceManager.getAudioDeviceSetup().bufferSize);
+  audioGraph->addConnection({{audioInputNode->nodeID, 0}, {dilateNode->nodeID, 0}});
+  audioGraph->addConnection({{dilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
+  dilateEditor = dilateNode->getProcessor()->createEditor();
 
-  audioSettings.button.setBounds(getLocalBounds().removeFromTop(50));
+  // audioSettings.button.setBounds(getLocalBounds().removeFromTop(50));
   addAndMakeVisible(audioSettings.button);
-  addAndMakeVisible(spectrogram);
+  dilateEditor->setTopLeftPosition(10, 50);
+  addAndMakeVisible(dilateEditor);
+  addAndMakeVisible(spectrogramEditor);
 }
 
-void MainComponent::timerCallback() { repaint(); }
+void MainComponent::timerCallback() {
+  // Should be able to set the timer and call repaint from within the processorEditor itself, but it
+  // gives segfaults when I try, so I'm setting up the timer and repaint call from here in the
+  // mainComponent because it seems to work.
+  spectrogramEditor->repaint();
+}
 
 //==============================================================================
 void MainComponent::paint(juce::Graphics& g) {}
@@ -85,4 +94,7 @@ MainComponent::~MainComponent() {
   deviceManager.closeAudioDevice();
   // unfortunately the naming convention to de-allocate a unique pointer is .reset()
   audioGraph.reset();
+  // This is hamfisted, but it mitigates memory leaks in cases where the mainComponent is closed
+  // before its children.
+  deleteAllChildren();
 }

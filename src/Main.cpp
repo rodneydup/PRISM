@@ -57,6 +57,7 @@ class GuiAppApplication : public juce::JUCEApplication {
                          ResizableWindow::backgroundColourId),
                        DocumentWindow::allButtons) {
       setUsingNativeTitleBar(true);
+      setComponentID("Prism-Dilate");
       setContentOwned(new MainComponent(), true);
 
 #if JUCE_IOS || JUCE_ANDROID
