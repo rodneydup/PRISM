@@ -59,13 +59,13 @@ class DilateComponent : public BaseProcessor {
   int overlap = 2;
   int hopSize = fftSize / overlap;
   std::vector<int> inputBufferIndex;
-  bool bypass = false;
 
   juce::AudioParameterChoice* fftOrderMenu;
   juce::AudioParameterChoice* fftWindowMenu;
   juce::AudioParameterInt* overlapSlider;
   juce::AudioParameterInt* focalPoint;
   juce::AudioParameterFloat* dilationFactor;
+  juce::AudioParameterBool* bypass;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DilateComponent)
 };

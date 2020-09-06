@@ -62,12 +62,14 @@ MainComponent::MainComponent()
   dilateNode->getProcessor()->setPlayConfigDetails(1, 1,
                                                    deviceManager.getAudioDeviceSetup().sampleRate,
                                                    deviceManager.getAudioDeviceSetup().bufferSize);
-  audioGraph->addConnection({{audioInputNode->nodeID, 0}, {dilateNode->nodeID, 0}});
-  audioGraph->addConnection({{dilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});
-  audioGraph->addConnection({{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});
+  audioGraph->addConnection(
+    {{audioInputNode->nodeID, 0}, {dilateNode->nodeID, 0}});  // connect input to dilate
+  audioGraph->addConnection(
+    {{dilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});  // connect dilate to output
+  audioGraph->addConnection(
+    {{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});  // connect dilate to spectrogram
   dilateEditor = dilateNode->getProcessor()->createEditor();
 
-  // audioSettings.button.setBounds(getLocalBounds().removeFromTop(50));
   addAndMakeVisible(audioSettings.button);
   dilateEditor->setTopLeftPosition(10, 50);
   addAndMakeVisible(dilateEditor);

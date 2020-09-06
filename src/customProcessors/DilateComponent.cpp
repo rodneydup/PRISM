@@ -37,6 +37,7 @@ DilateComponent::DilateComponent() {
                  new juce::AudioParameterInt("focalPoint", "Focal Point", 0, 10000, 400));
   addParameter(dilationFactor = new juce::AudioParameterFloat("dilationFactor", "Dilation Factor",
                                                               -2.0f, 2.0f, 1.0f));
+  addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
 }
 
 DilateComponent::~DilateComponent() {}
@@ -50,7 +51,7 @@ void DilateComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
   if (*fftWindowMenu != windowIndex) changeWindowType(*fftWindowMenu);
   if (*fftOrderMenu != fftOrder - 6) changeOrder(*fftOrderMenu + 6);
   if (*overlapSlider != overlap) changeOverlap(*overlapSlider);
-  if (!bypass) {
+  if (!*bypass) {
     if (audioBuffer.getNumChannels() > 0) {
       float* channelData = audioBuffer.getWritePointer(0, 0);
       for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {
