@@ -111,9 +111,9 @@ SpectrogramComponent::Editor::Editor(SpectrogramComponent& owner)
   for (int i = 0; i < juce::dsp::WindowingFunction<float>::numWindowingMethods; i++)
     windowTypeMenu.addItem(juce::dsp::WindowingFunction<float>::getWindowingMethodName(
                              juce::dsp::WindowingFunction<float>::WindowingMethod(i)),
-                           i);
+                           i + 1);
   windowTypeMenu.setSelectedId(owner.windowType);
-  windowTypeMenu.onChange = [&] { owner.changeWindowType(windowTypeMenu.getSelectedId()); };
+  windowTypeMenu.onChange = [&] { owner.changeWindowType(windowTypeMenu.getSelectedId() - 1); };
   windowTypeLabel.attachToComponent(&windowTypeMenu, true);
   addAndMakeVisible(windowTypeMenu);
 }
