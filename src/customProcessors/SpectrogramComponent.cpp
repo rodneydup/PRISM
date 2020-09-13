@@ -1,9 +1,10 @@
 #include "SpectrogramComponent.hpp"
 
 SpectrogramComponent::SpectrogramComponent() : spectrogramImage(juce::Image::RGB, 512, 512, true) {
+  window.resize(fftSize);
+  juce::dsp::WindowingFunction<float>::fillWindowingTables(
+    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
   forwardFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
-  window = std::make_unique<juce::dsp::WindowingFunction<float>>(
-    fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
   fifo.resize(fftSize, 0.0f);
   fftData.resize(fftSize * 2, 0.0f);
 }
@@ -34,6 +35,7 @@ void SpectrogramComponent::pushNextSampleIntoFifo(float sample) noexcept {
   if (fifoIndex == fftSize) {
     std::fill(fftData.begin(), fftData.end(), 0.0f);
     std::copy(fifo.begin(), fifo.end(), fftData.begin());
+
     drawNextLineOfSpectrogram();
 
     fifoIndex = 0;
@@ -48,12 +50,10 @@ void SpectrogramComponent::drawNextLineOfSpectrogram() {
 
   // first, shuffle our image leftwards by 1 pixel..
   spectrogramImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
-
-  window->multiplyWithWindowingTable(fftData.data(), fftSize);
+  for (int i = 0; i < fftSize; i++) fftData[i] *= window[i];
 
   // then render our FFT data..
   forwardFFT->performFrequencyOnlyForwardTransform(fftData.data());
-
   // find the range of values produced, so we can scale our rendering to
   // show up the detail clearly
   auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2);
@@ -77,16 +77,18 @@ void SpectrogramComponent::changeOrder(int order) {
   forwardFFT.reset(new juce::dsp::FFT(fftOrder));
   fifo.resize(fftSize);
   fftData.resize(fftSize * 2);
-  window.reset(new juce::dsp::WindowingFunction<float>(
-    fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType)));
+  window.resize(fftSize);
+  juce::dsp::WindowingFunction<float>::fillWindowingTables(
+    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
   bypass = false;
 }
 
 void SpectrogramComponent::changeWindowType(int type) {
   bypass = true;
   windowType = type;
-  window.reset(new juce::dsp::WindowingFunction<float>(
-    fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType)));
+  window.resize(fftSize);
+  juce::dsp::WindowingFunction<float>::fillWindowingTables(
+    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
   bypass = false;
 }
 

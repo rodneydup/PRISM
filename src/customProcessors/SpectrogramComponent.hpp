@@ -59,7 +59,7 @@ class SpectrogramComponent : public BaseProcessor {
 
  private:
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
-  std::unique_ptr<juce::dsp::WindowingFunction<float>> window;
+  std::vector<float> window;
   std::vector<float> fifo;
   std::vector<float> fftData;
   int fifoIndex = 0;

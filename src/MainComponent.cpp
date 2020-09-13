@@ -3,9 +3,6 @@
 //==============================================================================
 MainComponent::MainComponent()
   : audioGraph(std::make_unique<juce::AudioProcessorGraph>()), audioSettings(deviceManager) {
-  setSize(800, 500);
-  startTimerHz(30);
-
   // tell the ProcessorPlayer what audio callback function to play (.get() needed since audioGraph
   // is a unique_ptr)
   processorPlayer.setProcessor(audioGraph.get());
@@ -57,10 +54,15 @@ MainComponent::MainComponent()
   audioGraph->addConnection(
     {{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});  // connect dilate to spectrogram
 
+  audioSettings.button->setBounds(getLocalBounds().removeFromTop(50));
+
   addAndMakeVisible(audioSettings.button.get());
   dilateEditor->setTopLeftPosition(10, 50);
   addAndMakeVisible(dilateEditor.get());
   addAndMakeVisible(spectrogramEditor.get());
+
+  setSize(800, 500);
+  startTimerHz(30);
 }
 
 void MainComponent::timerCallback() {
@@ -77,14 +79,12 @@ void MainComponent::resized() {
   // This is called when the MainComponent is resized.
   // If you add any child components, this is where you should
   // update their positions.
-  audioSettings.button->setBounds(getLocalBounds().removeFromTop(50));
+  auto rect = getLocalBounds();
+
+  audioSettings.button->setBounds(rect.removeFromTop(50));
 }
 
 MainComponent::~MainComponent() {
   deviceManager.closeAudioDevice();
-  // This is hamfisted, but it mitigates memory leaks in cases where the mainComponent is closed
-  // before its children.
-  // deleteAllChildren();
-  // unfortunately the naming convention to de-allocate a unique pointer is .reset()
   audioGraph.reset();
 }

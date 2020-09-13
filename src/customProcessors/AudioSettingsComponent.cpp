@@ -48,7 +48,7 @@ audioSettingsComponent::audioSettingsComponent(juce::AudioDeviceManager& parentD
   window->escapeKeyTriggersCloseButton = true;
   window->resizable = true;
   window->useBottomRightCornerResizer = true;
-  window->useNativeTitleBar = true;
+  window->useNativeTitleBar = false;
   window->content.set(this, false);
 }
 

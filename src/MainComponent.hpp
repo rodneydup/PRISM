@@ -30,7 +30,7 @@ class MainComponent : public juce::Component, private juce::Timer {
 
   // Graphics
   // stuff==============================================================================
-  void paint(juce::Graphics &) override;
+  void paint(juce::Graphics&) override;
   void resized() override;
 
   void timerCallback() override;

@@ -21,6 +21,8 @@ DilateComponent::DilateComponent() {
     inputBufferIndex[i] = 0 - hopSize * i;
   }
   frequencyDomainData.resize(fftSize, 0.0f);
+  transformedData.resize(fftSize, 0.0f);
+
   outputQueue.resize(fftSize * 2, 0.0f);
 
   addParameter(fftOrderMenu = new juce::AudioParameterChoice(
@@ -33,8 +35,8 @@ DilateComponent::DilateComponent() {
   addParameter(fftWindowMenu = new juce::AudioParameterChoice(
                  "fftWindowMenu", "FFT Window", juceWindows, windowIndex, "FFT Window"));
   addParameter(overlapSlider = new juce::AudioParameterInt("overlap", "Overlap", 1, 12, 2));
-  addParameter(focalPoint =
-                 new juce::AudioParameterInt("focalPoint", "Focal Point", 0, 10000, 400));
+  addParameter(focalPoint = new juce::AudioParameterFloat("focalPoint", "Focal Point", 0.0f,
+                                                          10000.0f, 400.0f));
   addParameter(dilationFactor = new juce::AudioParameterFloat("dilationFactor", "Dilation Factor",
                                                               -2.0f, 2.0f, 1.0f));
   addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
@@ -48,11 +50,11 @@ void DilateComponent::releaseResources() {}
 
 void DilateComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
                                    juce::MidiBuffer& midiBuffer) {
-  if (*fftWindowMenu != windowIndex) changeWindowType(*fftWindowMenu);
-  if (*fftOrderMenu != fftOrder - 6) changeOrder(*fftOrderMenu + 6);
-  if (*overlapSlider != overlap) changeOverlap(*overlapSlider);
   if (!*bypass) {
     if (audioBuffer.getNumChannels() > 0) {
+      if (*fftWindowMenu != windowIndex) changeWindowType(*fftWindowMenu);
+      if (*fftOrderMenu != fftOrder - 6) changeOrder(*fftOrderMenu + 6);
+      if (*overlapSlider != overlap) changeOverlap(*overlapSlider);
       float* channelData = audioBuffer.getWritePointer(0, 0);
       for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {
         // push sample into input buffers
@@ -82,16 +84,30 @@ void DilateComponent::pushNextSampleIntoBuffers(float sample) noexcept {
 }
 
 void DilateComponent::dilate(std::vector<std::complex<float>> buffer) {
+  // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
+  focalBin = (*focalPoint / (getSampleRate() / fftSize));
+
   // window the samples
   for (int i = 0; i < fftSize; i++) buffer[i] *= window[i];
   // perform FFT
   forwardFFT->perform(buffer.data(), frequencyDomainData.data(), false);
   // Manipulate bins
-
+  for (int i = 0; i < fftSize; i++) {
+    float transformedIndex = ((i - focalBin) * (*dilationFactor)) + focalBin;
+    if (transformedIndex < (transformedData.size() - 1) && transformedIndex > 0) {
+      const unsigned j = floor(transformedIndex);
+      const unsigned k = j + 1;
+      const float t = transformedIndex - j;
+      transformedData[j] += frequencyDomainData[i] * (1 - t);
+      transformedData[k] += frequencyDomainData[i] * t;
+    }
+  }
   // Inverse FFT
-  inverseFFT->perform(frequencyDomainData.data(), buffer.data(), true);
-  for (int i = 0; i < fftSize; i++)
+  inverseFFT->perform(transformedData.data(), buffer.data(), true);
+  for (int i = 0; i < fftSize; i++) {
     outputQueue[(outputQueueIndex + i) % outputQueue.size()] += buffer[i].real() / overlap;
+    transformedData[i] = (0, 0);
+  }
 }
 
 void DilateComponent::changeOrder(int order) {
@@ -111,6 +127,8 @@ void DilateComponent::changeOrder(int order) {
     inputBufferIndex[i] = 0 - hopSize * i;
   }
   frequencyDomainData.resize(fftSize, 0.0f);
+  transformedData.resize(fftSize, 0.0f);
+
   outputQueue.resize(fftSize * 2, 0.0f);
   outputQueueIndex = 0;
 }
