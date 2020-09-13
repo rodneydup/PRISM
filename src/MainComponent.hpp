@@ -42,13 +42,14 @@ class MainComponent : public juce::Component, private juce::Timer {
   juce::AudioDeviceManager deviceManager;
   // The audio graph will store and set the full DSP chain.
   std::unique_ptr<juce::AudioProcessorGraph> audioGraph;
-  juce::AudioProcessorGraph::Node::Ptr audioInputNode;   // access to hardware input
-  juce::AudioProcessorGraph::Node::Ptr audioOutputNode;  // access to hardware output
-  juce::AudioProcessorGraph::Node::Ptr testToneNode;     // Sine tone
-  juce::AudioProcessorGraph::Node::Ptr dilateNode;       // Spectral Dilate
-  juce::AudioProcessorEditor *dilateEditor;              // Spectral Dilate Editor
-  juce::AudioProcessorGraph::Node::Ptr spectrogramNode;  // Spectrogram
-  juce::AudioProcessorEditor *spectrogramEditor;         // Spectrogram editor
+  // Nodes
+  juce::AudioProcessorGraph::Node::Ptr audioInputNode;            // access to hardware input
+  juce::AudioProcessorGraph::Node::Ptr audioOutputNode;           // access to hardware output
+  juce::AudioProcessorGraph::Node::Ptr testToneNode;              // Sine tone
+  juce::AudioProcessorGraph::Node::Ptr dilateNode;                // Spectral Dilate
+  std::unique_ptr<juce::AudioProcessorEditor> dilateEditor;       // Spectral Dilate Editor
+  juce::AudioProcessorGraph::Node::Ptr spectrogramNode;           // Spectrogram
+  std::unique_ptr<juce::AudioProcessorEditor> spectrogramEditor;  // Spectrogram editor
 
   // this DSP chain will be executed by the processorPlayer
   juce::AudioProcessorPlayer processorPlayer;

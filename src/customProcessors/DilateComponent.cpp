@@ -72,7 +72,7 @@ void DilateComponent::pushNextSampleIntoBuffers(float sample) noexcept {
   for (int i = 0; i < overlap; i++) {
     if (inputBufferIndex[i] == fftSize) {
       dilate(inputBuffer[i]);
-      inputBufferIndex[i] = 1;
+      inputBufferIndex[i] = 0;
     }
     // write sample to next index of inputBuffer
     if (inputBufferIndex[i] >= 0) inputBuffer[i][(size_t)inputBufferIndex[i]] = sample;

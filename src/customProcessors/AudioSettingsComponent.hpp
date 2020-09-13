@@ -7,15 +7,14 @@
 // your module headers visible.
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
-#include <juce_gui_extra/juce_gui_extra.h>
-
 #include <juce_dsp/juce_dsp.h>
+#include <juce_gui_extra/juce_gui_extra.h>
 //==============================================================================
 class audioSettingsComponent : public juce::Component,
                                public juce::ChangeListener,
                                private juce::Timer {
  public:
-      audioSettingsComponent(juce::AudioDeviceManager& ParentDeviceManager_);
+  audioSettingsComponent(juce::AudioDeviceManager& ParentDeviceManager_);
 
   ~audioSettingsComponent() override;
 
@@ -23,8 +22,9 @@ class audioSettingsComponent : public juce::Component,
 
   void resized() override;
 
-  juce::TextButton button;                   // button to open Audio Settings window
-  juce::DialogWindow::LaunchOptions window;  // dialog window containing Audio Settings
+  std::unique_ptr<juce::TextButton> button;  // button to open Audio Settings window
+  std::unique_ptr<juce::DialogWindow::LaunchOptions>
+    window;  // dialog window containing Audio Settings
 
  private:
   void changeListenerCallback(juce::ChangeBroadcaster*) override;

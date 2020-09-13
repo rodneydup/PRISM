@@ -4,8 +4,8 @@ SpectrogramComponent::SpectrogramComponent() : spectrogramImage(juce::Image::RGB
   forwardFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
   window = std::make_unique<juce::dsp::WindowingFunction<float>>(
     fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
-  fifo.resize(fftSize);
-  fftData.resize(fftSize * 2);
+  fifo.resize(fftSize, 0.0f);
+  fftData.resize(fftSize * 2, 0.0f);
 }
 
 SpectrogramComponent::~SpectrogramComponent() {}
@@ -19,7 +19,9 @@ void SpectrogramComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
   if (!bypass) {  // bypass variable stops from writing to fft arrays while they are being resized
     if (audioBuffer.getNumChannels() > 0) {
       float* channelData = audioBuffer.getWritePointer(0, 0);
-      for (auto i = 0; i < audioBuffer.getNumSamples(); ++i) pushNextSampleIntoFifo(channelData[i]);
+      for (auto i = 0; i < audioBuffer.getNumSamples(); ++i) {
+        pushNextSampleIntoFifo(channelData[i]);
+      }
     }
   }
 }
