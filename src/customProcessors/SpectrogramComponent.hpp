@@ -16,7 +16,7 @@ see the paint method in the SpectrogramComponent::Editor subclass below.
 
 #include "BaseProcessor.hpp"
 
-class SpectrogramComponent : public BaseProcessor {
+class SpectrogramComponent : public BaseProcessor, private juce::Timer {
  public:
   SpectrogramComponent();
 
@@ -31,6 +31,7 @@ class SpectrogramComponent : public BaseProcessor {
 
   ~SpectrogramComponent();
 
+  void timerCallback() override;
   //==============================================================================
   void prepareToPlay(double, int) override;
   void releaseResources() override;
@@ -53,7 +54,7 @@ class SpectrogramComponent : public BaseProcessor {
 
   int fftOrder = 10;
   int fftSize = 1 << fftOrder;
-  int windowType = 2;
+  int windowType = 3;
 
   juce::Image spectrogramImage;
 
@@ -64,6 +65,7 @@ class SpectrogramComponent : public BaseProcessor {
   std::vector<float> fftData;
   int fifoIndex = 0;
   bool bypass = false;
+  bool nextFFTBlockReady = false;
 
   // We have to make the processorEditor a subclass of the processor itself.
   class Editor : public juce::AudioProcessorEditor {

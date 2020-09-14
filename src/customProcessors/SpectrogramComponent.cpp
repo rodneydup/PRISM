@@ -3,14 +3,21 @@
 SpectrogramComponent::SpectrogramComponent() : spectrogramImage(juce::Image::RGB, 512, 512, true) {
   window.resize(fftSize);
   juce::dsp::WindowingFunction<float>::fillWindowingTables(
-    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
+    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType - 1));
   forwardFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
   fifo.resize(fftSize, 0.0f);
   fftData.resize(fftSize * 2, 0.0f);
+  startTimerHz(60);
 }
 
 SpectrogramComponent::~SpectrogramComponent() {}
 
+void SpectrogramComponent::timerCallback() {
+  if (nextFFTBlockReady) {
+    drawNextLineOfSpectrogram();
+    nextFFTBlockReady = false;
+  }
+}
 //==============================================================================
 void SpectrogramComponent::prepareToPlay(double, int) {}
 void SpectrogramComponent::releaseResources() {}
@@ -19,8 +26,8 @@ void SpectrogramComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
                                         juce::MidiBuffer& midiBuffer) {
   if (!bypass) {  // bypass variable stops from writing to fft arrays while they are being resized
     if (audioBuffer.getNumChannels() > 0) {
-      float* channelData = audioBuffer.getWritePointer(0, 0);
-      for (auto i = 0; i < audioBuffer.getNumSamples(); ++i) {
+      const float* channelData = audioBuffer.getReadPointer(0, 0);
+      for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {
         pushNextSampleIntoFifo(channelData[i]);
       }
     }
@@ -33,11 +40,11 @@ void SpectrogramComponent::pushNextSampleIntoFifo(float sample) noexcept {
   // if the fifo contains enough data, copy it to fftData. IS THIS A BAD IDEA?? This function gets
   // called in the audio thread... Though this copy only happens every "fftSize" samples.
   if (fifoIndex == fftSize) {
-    std::fill(fftData.begin(), fftData.end(), 0.0f);
-    std::copy(fifo.begin(), fifo.end(), fftData.begin());
-
-    drawNextLineOfSpectrogram();
-
+    if (!nextFFTBlockReady) {
+      std::fill(fftData.begin(), fftData.end(), 0.0f);
+      std::copy(fifo.begin(), fifo.end(), fftData.begin());
+      nextFFTBlockReady = true;
+    }
     fifoIndex = 0;
   }
   // write sample to next index of fifo
@@ -50,6 +57,8 @@ void SpectrogramComponent::drawNextLineOfSpectrogram() {
 
   // first, shuffle our image leftwards by 1 pixel..
   spectrogramImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
+
+  // window the fft
   for (int i = 0; i < fftSize; i++) fftData[i] *= window[i];
 
   // then render our FFT data..
@@ -79,7 +88,7 @@ void SpectrogramComponent::changeOrder(int order) {
   fftData.resize(fftSize * 2);
   window.resize(fftSize);
   juce::dsp::WindowingFunction<float>::fillWindowingTables(
-    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
+    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType - 1));
   bypass = false;
 }
 
@@ -88,7 +97,7 @@ void SpectrogramComponent::changeWindowType(int type) {
   windowType = type;
   window.resize(fftSize);
   juce::dsp::WindowingFunction<float>::fillWindowingTables(
-    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType));
+    window.data(), fftSize, juce::dsp::WindowingFunction<float>::WindowingMethod(windowType - 1));
   bypass = false;
 }
 

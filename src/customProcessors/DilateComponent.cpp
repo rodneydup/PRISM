@@ -92,15 +92,19 @@ void DilateComponent::dilate(std::vector<std::complex<float>> buffer) {
   // perform FFT
   forwardFFT->perform(buffer.data(), frequencyDomainData.data(), false);
   // Manipulate bins
-  for (int i = 0; i < fftSize; i++) {
+  for (int i = 0; i < fftSize / 2; i++) {
     float transformedIndex = ((i - focalBin) * (*dilationFactor)) + focalBin;
-    if (transformedIndex < (transformedData.size() - 1) && transformedIndex > 0) {
+    if (transformedIndex < (fftSize / 2) && transformedIndex > 0) {
       const unsigned j = floor(transformedIndex);
       const unsigned k = j + 1;
       const float t = transformedIndex - j;
       transformedData[j] += frequencyDomainData[i] * (1 - t);
       transformedData[k] += frequencyDomainData[i] * t;
     }
+  }
+  for (int i = (fftSize / 2) + 1; i < fftSize; i++) {  // DFT mirroring semantics
+    transformedData[i].real(transformedData[fftSize - i].real());
+    transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
   }
   // Inverse FFT
   inverseFFT->perform(transformedData.data(), buffer.data(), true);
