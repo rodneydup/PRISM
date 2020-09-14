@@ -64,9 +64,12 @@ class DilateComponent : public BaseProcessor {
   juce::AudioParameterChoice* fftOrderMenu;
   juce::AudioParameterChoice* fftWindowMenu;
   juce::AudioParameterInt* overlapSlider;
-  juce::AudioParameterFloat* focalPoint;
-  juce::AudioParameterFloat* dilationFactor;
+  juce::AudioParameterFloat* focalPointSlider;
+  juce::AudioParameterFloat* dilationFactorSlider;
   juce::AudioParameterBool* bypass;
+
+  juce::SmoothedValue<float> focalPoint;
+  juce::SmoothedValue<float> dilationFactor;
 
   float focalBin;
 
