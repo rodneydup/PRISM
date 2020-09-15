@@ -54,10 +54,7 @@ MainComponent::MainComponent()
   audioGraph->addConnection(
     {{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});  // connect dilate to spectrogram
 
-  audioSettings.button->setBounds(getLocalBounds().removeFromTop(50));
-
   addAndMakeVisible(audioSettings.button.get());
-  dilateEditor->setTopLeftPosition(10, 50);
   addAndMakeVisible(dilateEditor.get());
   addAndMakeVisible(spectrogramEditor.get());
 
@@ -82,6 +79,7 @@ void MainComponent::resized() {
   auto rect = getLocalBounds();
 
   audioSettings.button->setBounds(rect.removeFromTop(50));
+  dilateEditor->setBounds(rect.removeFromTop(200));
 }
 
 MainComponent::~MainComponent() {

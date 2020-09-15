@@ -57,10 +57,6 @@ void DilateComponent::releaseResources() {}
 void DilateComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
                                    juce::MidiBuffer& midiBuffer) {
   if (!*bypass) {
-    if (focalPointSlider->get() != focalPoint.getTargetValue())
-      focalPoint.setTargetValue(focalPointSlider->get());
-    if (dilationFactorSlider->get() != dilationFactor.getTargetValue())
-      dilationFactor.setTargetValue(dilationFactorSlider->get());
     if (audioBuffer.getNumChannels() > 0) {
       if (*fftWindowMenu != windowIndex) changeWindowType(*fftWindowMenu);
       if (*fftOrderMenu != fftOrder - 6) changeOrder(*fftOrderMenu + 6);
@@ -70,14 +66,21 @@ void DilateComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
         // push sample into input buffers
         pushNextSampleIntoBuffers(channelData[i]);
 
+        // copy next value from output queue into buffer
         channelData[i] = outputQueue[outputQueueIndex];
         outputQueue[outputQueueIndex] = 0;
         outputQueueIndex = (outputQueueIndex + 1) % outputQueue.size();
 
+        // iterate smoothvalues per sample
         focalPoint.getNextValue();
         dilationFactor.getNextValue();
       }
     }
+    // set new targets for smoothvalues per buffer if slider changed
+    if (focalPointSlider->get() != focalPoint.getTargetValue())
+      focalPoint.setTargetValue(focalPointSlider->get());
+    if (dilationFactorSlider->get() != dilationFactor.getTargetValue())
+      dilationFactor.setTargetValue(dilationFactorSlider->get());
   }
 }
 //==============================================================================
