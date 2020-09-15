@@ -53,7 +53,6 @@ target_sources(${APP_NAME} PRIVATE
     src/Main.cpp
     src/MainComponent.cpp
     src/customProcessors/AudioSettingsComponent.cpp
-    src/customProcessors/ToneGenerator.cpp 
     src/customProcessors/DilateComponent.cpp
     src/customProcessors/SpectrogramComponent.cpp
     )

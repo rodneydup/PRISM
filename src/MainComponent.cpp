@@ -79,7 +79,7 @@ void MainComponent::resized() {
   auto rect = getLocalBounds();
 
   audioSettings.button->setBounds(rect.removeFromTop(50));
-  dilateEditor->setBounds(rect.removeFromTop(200));
+  dilateEditor->setBounds(rect.removeFromTop(250));
 }
 
 MainComponent::~MainComponent() {

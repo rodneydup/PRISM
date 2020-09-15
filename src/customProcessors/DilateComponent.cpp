@@ -24,10 +24,12 @@ DilateComponent::DilateComponent() {
   transformedData.resize(fftSize, 0.0f);
 
   outputQueue.resize(fftSize * 2, 0.0f);
-
+  // add parameters
   addParameter(fftOrderMenu = new juce::AudioParameterChoice(
-                 "fftOrderMenu", "FFT Order", {"64", "128", "256", "512", "1024", "2048", "4096"},
-                 fftOrder - 6, "FFT Order"));
+                 "fftOrderMenu", "FFT Order",
+                 {"128", "256", "512", "1024", "2048", "4096", "8192", "16384", "32768"},
+                 fftOrder - 7, "FFT Order"));
+  // get names of available windows in juce
   juce::StringArray juceWindows;
   for (int i = 0; i < juce::dsp::WindowingFunction<float>::numWindowingMethods; i++)
     juceWindows.add(juce::dsp::WindowingFunction<float>::getWindowingMethodName(
@@ -59,7 +61,7 @@ void DilateComponent::processBlock(juce::AudioBuffer<float>& audioBuffer,
   if (!*bypass) {
     if (audioBuffer.getNumChannels() > 0) {
       if (*fftWindowMenu != windowIndex) changeWindowType(*fftWindowMenu);
-      if (*fftOrderMenu != fftOrder - 6) changeOrder(*fftOrderMenu + 6);
+      if (*fftOrderMenu != fftOrder - 7) changeOrder(*fftOrderMenu + 7);
       if (*overlapSlider != overlap) changeOverlap(*overlapSlider);
       float* channelData = audioBuffer.getWritePointer(0, 0);
       for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {

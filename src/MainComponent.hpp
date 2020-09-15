@@ -10,8 +10,6 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
-// grab a trival sine wave
-#include "customProcessors/ToneGenerator.hpp"
 // our components
 #include "customProcessors/AudioSettingsComponent.hpp"
 #include "customProcessors/DilateComponent.hpp"
@@ -34,8 +32,6 @@ class MainComponent : public juce::Component, private juce::Timer {
   void resized() override;
 
   void timerCallback() override;
-
-  TSine sineOsc;  // simple sine oscillator
 
  private:
   // Instead of inheriting from juce::AudioAppComponent, we make our own deviceManager
