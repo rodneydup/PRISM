@@ -13,9 +13,9 @@ DilateProcessor::DilateProcessor()
                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
     ) {
-  for (int i = 0; i < getBusesLayout().getMainInputChannels(); i++)
+  for (int i = 0; i < getBusesLayout().getMainInputChannels(); i++) {
     IObuffers.push_back(std::make_unique<IObuffer>());
-
+  }
   forwardFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
   inverseFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
   window.resize(fftSize + 1);
@@ -70,7 +70,7 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
       float* channelData = audioBuffer.getWritePointer(chan, 0);
       for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {
         // push sample into input buffers
-        pushNextSampleIntoBuffers(channelData[i]);
+        pushNextSampleIntoBuffers(channelData[i], chan);
 
         // copy next value from output queue into buffer
         channelData[i] = IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex];
@@ -93,24 +93,22 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
 }
 
 //==============================================================================
-void DilateProcessor::pushNextSampleIntoBuffers(float sample) noexcept {
+void DilateProcessor::pushNextSampleIntoBuffers(float sample, int chan) noexcept {
   // if the inputBuffer contains enough data, copy it to fftData.
-  for (int chan = 0; chan < IObuffers.size(); chan++) {
-    for (int i = 0; i < overlap; i++) {
-      if (IObuffers[chan]->inputBufferIndex[i] == fftSize) {
-        dilate(IObuffers[chan]->inputBuffer[i], chan);
-        IObuffers[chan]->inputBufferIndex[i] = 0;
-      }
-      // write sample to next index of inputBuffer
-      if (IObuffers[chan]->inputBufferIndex[i] >= 0)
-        IObuffers[chan]->inputBuffer[i][(size_t)IObuffers[chan]->inputBufferIndex[i]] = sample;
-      IObuffers[chan]->inputBufferIndex[i]++;
-      // std::cout << inputBufferIndex[i] << std::endl;
+  for (int i = 0; i < overlap; i++) {
+    if (IObuffers[chan]->inputBufferIndex[i] == fftSize) {
+      dilate(IObuffers[chan]->inputBuffer[i], chan);
+      IObuffers[chan]->inputBufferIndex[i] = 0;
     }
+    // write sample to next index of inputBuffer
+    if (IObuffers[chan]->inputBufferIndex[i] >= 0)
+      IObuffers[chan]->inputBuffer[i][(size_t)IObuffers[chan]->inputBufferIndex[i]] = sample;
+    IObuffers[chan]->inputBufferIndex[i]++;
+    // std::cout << inputBufferIndex[i] << std::endl;
   }
 }
 
-void DilateProcessor::dilate(std::vector<std::complex<float>> buffer, int chan) {
+void DilateProcessor::dilate(std::vector<std::complex<float>>& buffer, int chan) {
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 

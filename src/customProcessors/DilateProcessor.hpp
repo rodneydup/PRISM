@@ -48,10 +48,10 @@ class DilateProcessor : public juce::AudioProcessor {
 
   //==============================================================================
   // Adding samples from the input stream into buffers
-  void pushNextSampleIntoBuffers(float sample) noexcept;
+  void pushNextSampleIntoBuffers(float sample, int chan) noexcept;
 
   // FFT, transform, IFFT, and add to output queue a buffer that is ready
-  void dilate(std::vector<std::complex<float>> buffer, int chan);
+  void dilate(std::vector<std::complex<float>>& buffer, int chan);
 
   // Change the fft Order/window size at runtime. Note that it
   // takes an ORDER, i.e. x where 2^x is the new window size.
@@ -82,7 +82,7 @@ class DilateProcessor : public juce::AudioProcessor {
   std::vector<std::complex<float>> transformedData;
 
   std::vector<std::unique_ptr<IObuffer>> IObuffers;
-  int overlap = 4;
+  int overlap = 8;
   int hopSize = fftSize / overlap;
 
   juce::AudioParameterChoice* fftOrderMenu;
