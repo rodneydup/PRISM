@@ -14,9 +14,7 @@ see the paint method in the SpectrogramComponent::Editor subclass below.
 #include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
-#include "BaseProcessor.hpp"
-
-class SpectrogramComponent : public BaseProcessor, private juce::Timer {
+class SpectrogramComponent : public juce::AudioProcessor, private juce::Timer {
  public:
   SpectrogramComponent();
 
@@ -37,6 +35,22 @@ class SpectrogramComponent : public BaseProcessor, private juce::Timer {
   void releaseResources() override;
 
   void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+  const juce::String getName() const override { return {}; }
+  bool acceptsMidi() const override { return false; }
+  bool producesMidi() const override { return false; }
+  double getTailLengthSeconds() const override { return 0; }
+
+  //==============================================================================
+  int getNumPrograms() override { return 0; }
+  int getCurrentProgram() override { return 0; }
+  void setCurrentProgram(int) override {}
+  const juce::String getProgramName(int) override { return {}; }
+  void changeProgramName(int, const juce::String&) override {}
+
+  //==============================================================================
+  void getStateInformation(juce::MemoryBlock&) override {}
+  void setStateInformation(const void*, int) override {}
 
   //==============================================================================
   // this is modified from the juce fft tutorial

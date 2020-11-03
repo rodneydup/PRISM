@@ -29,10 +29,11 @@ MainComponent::MainComponent()
   audioOutputNode =
     audioGraph->addNode(std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
       juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
+  // audioOutputNode->getProcessor
 
   // Dilate
-  dilateNode = audioGraph->addNode(std::make_unique<DilateComponent>());
-  dilateNode->getProcessor()->setPlayConfigDetails(1, 1,
+  dilateNode = audioGraph->addNode(std::make_unique<DilateProcessor>());
+  dilateNode->getProcessor()->setPlayConfigDetails(2, 2,
                                                    deviceManager.getAudioDeviceSetup().sampleRate,
                                                    deviceManager.getAudioDeviceSetup().bufferSize);
   dilateEditor =
@@ -48,9 +49,13 @@ MainComponent::MainComponent()
 
   // Connections
   audioGraph->addConnection(
-    {{audioInputNode->nodeID, 0}, {dilateNode->nodeID, 0}});  // connect input to dilate
+    {{audioInputNode->nodeID, 0}, {dilateNode->nodeID, 0}});  // connect input L to dilate L
   audioGraph->addConnection(
-    {{dilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});  // connect dilate to output
+    {{dilateNode->nodeID, 0}, {audioOutputNode->nodeID, 0}});  // connect dilate L to output L
+  audioGraph->addConnection(
+    {{audioInputNode->nodeID, 1}, {dilateNode->nodeID, 1}});  // connect input R to dilate R
+  audioGraph->addConnection(
+    {{dilateNode->nodeID, 1}, {audioOutputNode->nodeID, 1}});  // connect dilate R to output R
   audioGraph->addConnection(
     {{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});  // connect dilate to spectrogram
 

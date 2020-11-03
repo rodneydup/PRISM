@@ -1,17 +1,18 @@
 
-#ifndef DilateComponent_hpp
-#define DilateComponent_hpp
+#ifndef DilateProcessor_hpp
+#define DilateProcessor_hpp
 
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
-#include "BaseProcessor.hpp"
+#include <fstream>
+#include <iostream>
 
-class DilateComponent : public BaseProcessor {
+class DilateProcessor : public juce::AudioProcessor {
  public:
-  DilateComponent();
+  DilateProcessor();
 
   juce::AudioProcessorEditor* createEditor() override {
     return new juce::GenericAudioProcessorEditor(*this);
@@ -19,7 +20,7 @@ class DilateComponent : public BaseProcessor {
 
   bool hasEditor() const override { return true; }
 
-  ~DilateComponent();
+  ~DilateProcessor();
 
   //==============================================================================
   void prepareToPlay(double, int) override;
@@ -28,11 +29,29 @@ class DilateComponent : public BaseProcessor {
   void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
   //==============================================================================
+  bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
+  const juce::String getName() const override;
+
+  bool acceptsMidi() const override;
+  bool producesMidi() const override;
+  bool isMidiEffect() const override;
+  double getTailLengthSeconds() const override;
+
+  int getNumPrograms() override;
+  int getCurrentProgram() override;
+  void setCurrentProgram(int index) override;
+  const juce::String getProgramName(int index) override;
+  void changeProgramName(int index, const juce::String& newName) override;
+
+  void getStateInformation(juce::MemoryBlock& destData) override;
+  void setStateInformation(const void* data, int sizeInBytes) override;
+
+  //==============================================================================
   // Adding samples from the input stream into buffers
   void pushNextSampleIntoBuffers(float sample) noexcept;
 
   // FFT, transform, IFFT, and add to output queue a buffer that is ready
-  void dilate(std::vector<std::complex<float>> buffer);
+  void dilate(std::vector<std::complex<float>> buffer, int chan);
 
   // Change the fft Order/window size at runtime. Note that it
   // takes an ORDER, i.e. x where 2^x is the new window size.
@@ -48,31 +67,34 @@ class DilateComponent : public BaseProcessor {
   int fftSize = 1 << fftOrder;
   int windowIndex = 2;
 
+  struct IObuffer {
+    std::vector<std::vector<std::complex<float>>> inputBuffer;
+    std::vector<int> inputBufferIndex;
+    std::vector<float> outputQueue;
+    int outputQueueIndex = 0;
+  };
+
  private:
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
   std::unique_ptr<juce::dsp::FFT> inverseFFT;
   std::vector<float> window;
-  std::vector<std::vector<std::complex<float>>> inputBuffer;
   std::vector<std::complex<float>> frequencyDomainData;
   std::vector<std::complex<float>> transformedData;
-  std::vector<float> outputQueue;
-  int outputQueueIndex = 0;
-  int overlap = 2;
+
+  std::vector<std::unique_ptr<IObuffer>> IObuffers;
+  int overlap = 4;
   int hopSize = fftSize / overlap;
-  std::vector<int> inputBufferIndex;
 
   juce::AudioParameterChoice* fftOrderMenu;
-  juce::AudioParameterChoice* fftWindowMenu;
-  juce::AudioParameterInt* overlapSlider;
   juce::AudioParameterFloat* focalPointSlider;
   juce::AudioParameterFloat* dilationFactorSlider;
-  juce::AudioParameterBool* bypass;
 
   juce::SmoothedValue<float> focalPoint;
   juce::SmoothedValue<float> dilationFactor;
 
   float focalBin;
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DilateComponent)
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DilateProcessor)
 };
+
 #endif

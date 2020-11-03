@@ -12,7 +12,7 @@
 
 // our components
 #include "customProcessors/AudioSettingsComponent.hpp"
-#include "customProcessors/DilateComponent.hpp"
+#include "customProcessors/DilateProcessor.hpp"
 #include "customProcessors/SpectrogramComponent.hpp"
 
 //==============================================================================
