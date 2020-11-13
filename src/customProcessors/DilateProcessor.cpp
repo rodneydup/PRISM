@@ -112,6 +112,8 @@ void DilateProcessor::dilate(std::vector<std::complex<float>>& buffer, int chan)
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 
+  // get amplitude of buffer before processing
+
   // window the samples
   for (int i = 0; i < fftSize; i++) buffer[i] *= window[i];
   // perform FFT (would in-place be faster? realonly?)
@@ -124,20 +126,15 @@ void DilateProcessor::dilate(std::vector<std::complex<float>>& buffer, int chan)
       const unsigned j = floor(transformedIndex);
       const unsigned k = j + 1;
       const float t = transformedIndex - j;
-      // add magnitudes
-      transformedData[j].real(transformedData[j].real() +
-                              abs(frequencyDomainData[i].real() * (1 - t)));
-      transformedData[k].real(transformedData[k].real() + abs(frequencyDomainData[i].real() * t));
-      // add phases
-      // transformedData[j].imag(transformedData[j].imag() +
-      //                         (frequencyDomainData[i].imag() * (1 - t)));
-      // transformedData[k].imag(transformedData[k].imag() + (frequencyDomainData[i].imag() * t));
+
+      transformedData[j] += frequencyDomainData[i] * (1 - t);
+      transformedData[k] += frequencyDomainData[i] * t;
     }
   }
   // ========================================================================
   for (int i = (fftSize / 2) + 1; i < fftSize; i++) {  // DFT mirroring semantics
     transformedData[i].real(transformedData[fftSize - i].real());
-    // transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
+    transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
   }
   // Inverse FFT
   inverseFFT->perform(transformedData.data(), buffer.data(), true);
