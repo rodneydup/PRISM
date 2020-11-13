@@ -116,13 +116,18 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 
-  double normalizeLevel = 1;
+  double makeUpFactor = 1;
+  double rmsPre = 0;
+  double rmsPost = 0;
   if (*makeUpGain) {
-    // get peak amplitude of buffer before processing for normalization
-    auto minmaxPre = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize);
-    normalizeLevel = abs(minmaxPre.getEnd()) > abs(minmaxPre.getStart())
-                       ? abs(minmaxPre.getEnd())
-                       : abs(minmaxPre.getStart());
+    // // get peak amplitude of buffer before processing for normalization
+    // auto minmaxPre = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize);
+    // makeUpFactor = abs(minmaxPre.getEnd()) > abs(minmaxPre.getStart()) ? abs(minmaxPre.getEnd())
+    //                                                                    :
+    //                                                                    abs(minmaxPre.getStart());
+
+    for (int i = 0; i < fftSize; i++) rmsPre += pow(buffer[i], 2);
+    rmsPre = sqrt(rmsPre / fftSize);
   }
 
   // window the samples
@@ -152,18 +157,22 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // Inverse FFT
   inverseFFT->performRealOnlyInverseTransform(transformedData.data());
   if (*makeUpGain) {
-    auto minmaxPost = juce::FloatVectorOperations::findMinAndMax(transformedData.data(), fftSize);
-    double peakPost = abs(minmaxPost.getEnd()) > abs(minmaxPost.getStart())
-                        ? abs(minmaxPost.getEnd())
-                        : abs(minmaxPost.getStart());
-    normalizeLevel = normalizeLevel / peakPost;
+    // auto minmaxPost = juce::FloatVectorOperations::findMinAndMax(transformedData.data(),
+    // fftSize); double peakPost = abs(minmaxPost.getEnd()) > abs(minmaxPost.getStart())
+    //                     ? abs(minmaxPost.getEnd())
+    //                     : abs(minmaxPost.getStart());
+    for (int i = 0; i < fftSize; i++) rmsPost += pow(transformedData[i], 2);
+    rmsPost = sqrt(rmsPost / fftSize);
+
+    makeUpFactor = rmsPre / rmsPost;
   }
+
   for (int i = 0; i < fftSize; i++) {
     IObuffers[chan]->outputQueue[(IObuffers[chan]->outputQueueIndex + i) %
                                  IObuffers[chan]->outputQueue.size()] +=
-      (transformedData[i] * window[i] * normalizeLevel) / overlap;
+      (transformedData[i] * window[i] * makeUpFactor) / overlap;
   }
-  memset(transformedData.data(), 0, sizeof(float) * transformedData.size());
+  juce::FloatVectorOperations::fill(transformedData.data(), 0, transformedData.size());
 }
 
 void DilateProcessor::changeOrder(int order) {
