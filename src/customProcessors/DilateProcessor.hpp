@@ -89,6 +89,7 @@ class DilateProcessor : public juce::AudioProcessor {
   juce::AudioParameterFloat* focalPointSlider;
   juce::AudioParameterFloat* dilationFactorSlider;
   juce::AudioParameterBool* bypass;
+  juce::AudioParameterBool* makeUpGain;
 
   juce::SmoothedValue<float> focalPoint;
   juce::SmoothedValue<float> dilationFactor;

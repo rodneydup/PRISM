@@ -54,6 +54,8 @@ DilateProcessor::DilateProcessor()
                  "dilationFactor", "Dilation Factor",
                  juce::NormalisableRange<float>(-2.0f, 2.0f, 0.0001), 1.0f));
   dilationFactor.reset(2048);
+  addParameter(makeUpGain = new juce::AudioParameterBool("makeupgain", "Make-Up Gain", 0));
+  addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
 }
 
 DilateProcessor::~DilateProcessor() {}
@@ -64,23 +66,25 @@ void DilateProcessor::releaseResources() {}
 
 void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
                                    juce::MidiBuffer& midiBuffer) {
-  if (audioBuffer.getNumChannels() > 0) {
-    if (*fftOrderMenu != fftOrder - 7) changeOrder(*fftOrderMenu + 7);
-    for (int chan = 0; chan < audioBuffer.getNumChannels(); chan++) {
-      float* channelData = audioBuffer.getWritePointer(chan, 0);
-      for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {
-        // push sample into input buffers
-        pushNextSampleIntoBuffers(channelData[i], chan);
+  if (!*bypass) {
+    if (audioBuffer.getNumChannels() > 0) {
+      if (*fftOrderMenu != fftOrder - 7) changeOrder(*fftOrderMenu + 7);
+      for (int chan = 0; chan < audioBuffer.getNumChannels(); chan++) {
+        float* channelData = audioBuffer.getWritePointer(chan, 0);
+        for (int i = 0; i < audioBuffer.getNumSamples(); ++i) {
+          // push sample into input buffers
+          pushNextSampleIntoBuffers(channelData[i], chan);
 
-        // copy next value from output queue into buffer
-        channelData[i] = IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex];
-        IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex] = 0;
-        IObuffers[chan]->outputQueueIndex =
-          (IObuffers[chan]->outputQueueIndex + 1) % IObuffers[chan]->outputQueue.size();
-        if (chan == 0) {
-          // iterate smoothvalues per sample but not per channel
-          focalPoint.getNextValue();
-          dilationFactor.getNextValue();
+          // copy next value from output queue into buffer
+          channelData[i] = IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex];
+          IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex] = 0;
+          IObuffers[chan]->outputQueueIndex =
+            (IObuffers[chan]->outputQueueIndex + 1) % IObuffers[chan]->outputQueue.size();
+          if (chan == 0) {
+            // iterate smoothvalues per sample but not per channel
+            focalPoint.getNextValue();
+            dilationFactor.getNextValue();
+          }
         }
       }
     }
@@ -112,11 +116,17 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 
-  // get amplitude of buffer before processing
-  // auto maxLevel = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize / 2);
+  double normalizeLevel = 1;
+  if (*makeUpGain) {
+    // get peak amplitude of buffer before processing for normalization
+    auto minmaxPre = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize);
+    normalizeLevel = abs(minmaxPre.getEnd()) > abs(minmaxPre.getStart())
+                       ? abs(minmaxPre.getEnd())
+                       : abs(minmaxPre.getStart());
+  }
 
   // window the samples
-  for (int i = 0; i < fftSize; i++) buffer[i] *= window[i];
+  juce::FloatVectorOperations::multiply(buffer.data(), window.data(), fftSize);
 
   // perform FFT in place, returns interleaved real-imaginary values
   forwardFFT->performRealOnlyForwardTransform(buffer.data(), true);
@@ -132,26 +142,28 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
       transformedData[j] += buffer[i * 2] * (1 - t);
       transformedData[k] += buffer[i * 2] * t;
       // Phase Accumulation
-      transformedData[j + 1] += buffer[i * 2 + 1] * (1 - t);
-      transformedData[k + 1] += buffer[i * 2 + 1] * t;
+      transformedData[j + 1] += buffer[(i * 2) + 1] * (1 - t);
+      transformedData[k + 1] += buffer[(i * 2) + 1] * t;
     }
   }
 
   // ========================================================================
-  // for (int i = (fftSize / 2) + 1; i < fftSize; i++) {  // DFT mirroring semantics
-  //   transformedData[i].real(transformedData[fftSize - i].real());
-  //   transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
-  // }
 
   // Inverse FFT
   inverseFFT->performRealOnlyInverseTransform(transformedData.data());
+  if (*makeUpGain) {
+    auto minmaxPost = juce::FloatVectorOperations::findMinAndMax(transformedData.data(), fftSize);
+    double peakPost = abs(minmaxPost.getEnd()) > abs(minmaxPost.getStart())
+                        ? abs(minmaxPost.getEnd())
+                        : abs(minmaxPost.getStart());
+    normalizeLevel = normalizeLevel / peakPost;
+  }
   for (int i = 0; i < fftSize; i++) {
     IObuffers[chan]->outputQueue[(IObuffers[chan]->outputQueueIndex + i) %
                                  IObuffers[chan]->outputQueue.size()] +=
-      transformedData[i] * window[i] / overlap;
-    transformedData[i] = 0;
-    // frequencyDomainData[i] = std::complex<float>(0.0f, 0.0f);
+      (transformedData[i] * window[i] * normalizeLevel) / overlap;
   }
+  memset(transformedData.data(), 0, sizeof(float) * transformedData.size());
 }
 
 void DilateProcessor::changeOrder(int order) {
@@ -172,8 +184,7 @@ void DilateProcessor::changeOrder(int order) {
     IObuffers[chan]->outputQueue.resize(fftSize * 2, 0.0f);
     IObuffers[chan]->outputQueueIndex = 0;
   }
-  // frequencyDomainData.resize(fftSize, 0.0f);
-  transformedData.resize(fftSize, 0.0f);
+  transformedData.resize(fftSize * 2, 0.0f);
 }
 
 //==============================================================================
