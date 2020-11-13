@@ -10,6 +10,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "../ringBuffer.hpp"
+
 class DilateProcessor : public juce::AudioProcessor {
  public:
   DilateProcessor();
@@ -78,8 +80,9 @@ class DilateProcessor : public juce::AudioProcessor {
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
   std::unique_ptr<juce::dsp::FFT> inverseFFT;
   std::vector<float> window;
-  // std::vector<std::complex<float>> frequencyDomainData;
   std::vector<float> transformedData;
+  std::vector<std::unique_ptr<RingBuffer>> RMSpre;
+  std::vector<std::unique_ptr<RingBuffer>> RMSpost;
 
   std::vector<std::unique_ptr<IObuffer>> IObuffers;
   int overlap = 4;
@@ -93,6 +96,7 @@ class DilateProcessor : public juce::AudioProcessor {
 
   juce::SmoothedValue<float> focalPoint;
   juce::SmoothedValue<float> dilationFactor;
+  juce::SmoothedValue<float> MakeUpFactor;
 
   float focalBin;
 
