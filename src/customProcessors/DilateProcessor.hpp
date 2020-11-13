@@ -81,8 +81,10 @@ class DilateProcessor : public juce::AudioProcessor {
   std::unique_ptr<juce::dsp::FFT> inverseFFT;
   std::vector<float> window;
   std::vector<float> transformedData;
-  std::vector<std::unique_ptr<RingBuffer>> RMSpre;
-  std::vector<std::unique_ptr<RingBuffer>> RMSpost;
+  std::vector<float> makeUpValues;
+  int makeUpValuesWritePointer;
+  // std::vector<std::unique_ptr<RingBuffer>> RMSpre;
+  // std::vector<std::unique_ptr<RingBuffer>> RMSpost;
 
   std::vector<std::unique_ptr<IObuffer>> IObuffers;
   int overlap = 4;
@@ -96,6 +98,7 @@ class DilateProcessor : public juce::AudioProcessor {
 
   juce::SmoothedValue<float> focalPoint;
   juce::SmoothedValue<float> dilationFactor;
+
   juce::SmoothedValue<float> MakeUpFactor;
 
   float focalBin;

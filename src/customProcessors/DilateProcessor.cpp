@@ -15,8 +15,8 @@ DilateProcessor::DilateProcessor()
     ) {
   for (int i = 0; i < 2; i++) {
     IObuffers.push_back(std::make_unique<IObuffer>());
-    RMSpre.push_back(std::make_unique<RingBuffer>(4096));
-    RMSpost.push_back(std::make_unique<RingBuffer>(4096));
+    // RMSpre.push_back(std::make_unique<RingBuffer>(4096));
+    // RMSpost.push_back(std::make_unique<RingBuffer>(4096));
   }
   forwardFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
   inverseFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
@@ -60,6 +60,7 @@ DilateProcessor::DilateProcessor()
   addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
 
   MakeUpFactor.reset(4096);
+  makeUpValues.resize(10, 0.0f);
 }
 
 DilateProcessor::~DilateProcessor() {}
@@ -72,8 +73,8 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
                                    juce::MidiBuffer& midiBuffer) {
   if (!*bypass) {
     if (audioBuffer.getNumChannels() > 0) {
-      float RMScalculatedPre = 0.0f;
-      float RMScalculatedPost = 0.0f;
+      // float RMScalculatedPre = 0.0f;
+      // float RMScalculatedPost = 0.0f;
       if (*fftOrderMenu != fftOrder - 7) changeOrder(*fftOrderMenu + 7);
       for (int chan = 0; chan < audioBuffer.getNumChannels(); chan++) {
         float* channelData = audioBuffer.getWritePointer(chan, 0);
@@ -81,11 +82,11 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
           // push sample into input buffers
           pushNextSampleIntoBuffers(channelData[i], chan);
 
-          if (*makeUpGain) {
-            RMSpre[chan]->push_back(channelData[i]);
-            RMSpost[chan]->push_back(
-              IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex]);
-          }
+          // if (*makeUpGain) {
+          //   RMSpre[chan]->push_back(channelData[i]);
+          //   RMSpost[chan]->push_back(
+          //     IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex]);
+          // }
 
           // copy next value from output queue into buffer
           channelData[i] = IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex] *
@@ -102,10 +103,10 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
           }
         }
         // find highest rms value on any channel
-        if (*makeUpGain) {
-          RMScalculatedPre = juce::jmax(RMSpre[chan]->getRMS(4096), RMScalculatedPre);
-          RMScalculatedPost = juce::jmax(RMSpost[chan]->getRMS(4096), RMScalculatedPost);
-        }
+        // if (*makeUpGain) {
+        //   RMScalculatedPre = juce::jmax(RMSpre[chan]->getRMS(4096), RMScalculatedPre);
+        //   RMScalculatedPost = juce::jmax(RMSpost[chan]->getRMS(4096), RMScalculatedPost);
+        // }
       }
       // per buffer
       // set new targets for smoothvalues if slider changed
@@ -114,12 +115,12 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
       if (dilationFactorSlider->get() != dilationFactor.getTargetValue())
         dilationFactor.setTargetValue(dilationFactorSlider->get());
       // calculate make-up gain
-      if (*makeUpGain) {
-        if (RMScalculatedPost > 0)
-          MakeUpFactor.setTargetValue(RMScalculatedPre / RMScalculatedPost);
-      } else {
-        MakeUpFactor.setTargetValue(1.0f);
-      }
+      // if (*makeUpGain) {
+      //   if (RMScalculatedPost > 0)
+      //     MakeUpFactor.setTargetValue(RMScalculatedPre / RMScalculatedPost);
+      // } else {
+      //   MakeUpFactor.setTargetValue(1.0f);
+      // }
     }
   }
 }
@@ -145,18 +146,18 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 
   // double makeUpFactor = 1;
-  // double rmsPost = 0;
-  // double rmsPre = 0;
+  double rmsPost = 0;
+  double rmsPre = 0;
 
-  // if (*makeUpGain) {
-  //   // get peak amplitude of buffer before processing for normalization
-  //   // auto minmaxPre = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize);
-  //   // makeUpFactor = abs(minmaxPre.getEnd()) > abs(minmaxPre.getStart()) ?
-  //   abs(minmaxPre.getEnd())
-  //   //                                                                    :
-  //   // abs(minmaxPre.getStart()); for (int i = 0; i < fftSize; i++) rmsPre += pow(buffer[i], 2);
-  //   rmsPre = sqrt(rmsPre / fftSize);
-  // }
+  if (*makeUpGain) {
+    // get peak amplitude of buffer before processing for normalization
+    // auto minmaxPre = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize);
+    // makeUpFactor = abs(minmaxPre.getEnd()) > abs(minmaxPre.getStart()) ? abs(minmaxPre.getEnd())
+    //                                                                    :
+    //                                                                    abs(minmaxPre.getStart());
+    for (int i = 0; i < fftSize; i++) rmsPre += pow(buffer[i], 2);
+    rmsPre = sqrt(rmsPre / fftSize);
+  }
 
   // window the samples
   juce::FloatVectorOperations::multiply(buffer.data(), window.data(), fftSize);
@@ -184,22 +185,22 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
 
   // Inverse FFT
   inverseFFT->performRealOnlyInverseTransform(transformedData.data());
-  // if (*makeUpGain) {
-  //   // auto minmaxPost = juce::FloatVectorOperations::findMinAndMax(transformedData.data(),
-  //   // fftSize); double peakPost = abs(minmaxPost.getEnd()) > abs(minmaxPost.getStart())
-  //   //                     ? abs(minmaxPost.getEnd())
-  //   //                     : abs(minmaxPost.getStart());
-  //   // makeUpFactor = makeUpFactor / peakPost;
+  if (*makeUpGain) {
+    // auto minmaxPost = juce::FloatVectorOperations::findMinAndMax(transformedData.data(),
+    // fftSize); double peakPost = abs(minmaxPost.getEnd()) > abs(minmaxPost.getStart())
+    //                     ? abs(minmaxPost.getEnd())
+    //                     : abs(minmaxPost.getStart());
+    // makeUpFactor = makeUpFactor / peakPost;
 
-  //   for (int i = 0; i < fftSize; i++) rmsPost += pow(transformedData[i], 2);
-  //   rmsPost = sqrt(rmsPost / fftSize);
-  //   makeUpValuesWritePointer = (makeUpValuesWritePointer + 1) % makeUpValues.size();
-  //   makeUpValues[makeUpValuesWritePointer] = rmsPre / rmsPost;
-  //   MakeUpFactor.setTargetValue(std::accumulate(makeUpValues.begin(), makeUpValues.end(), 0.0f) /
-  //                               makeUpValues.size());
-  // } else {
-  //   MakeUpFactor.setTargetValue(1.0f);
-  // }
+    for (int i = 0; i < fftSize; i++) rmsPost += pow(transformedData[i], 2);
+    rmsPost = sqrt(rmsPost / fftSize);
+    makeUpValuesWritePointer = (makeUpValuesWritePointer + 1) % makeUpValues.size();
+    makeUpValues[makeUpValuesWritePointer] = rmsPre / rmsPost;
+    MakeUpFactor.setTargetValue(std::accumulate(makeUpValues.begin(), makeUpValues.end(), 0.0f) /
+                                makeUpValues.size());
+  } else {
+    MakeUpFactor.setTargetValue(1.0f);
+  }
   for (int i = 0; i < fftSize; i++) {
     IObuffers[chan]->outputQueue[(IObuffers[chan]->outputQueueIndex + i) %
                                  IObuffers[chan]->outputQueue.size()] +=
