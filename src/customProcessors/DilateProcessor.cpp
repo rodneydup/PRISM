@@ -25,13 +25,13 @@ DilateProcessor::DilateProcessor()
     IObuffers[chan]->inputBuffer.resize(overlap);
     IObuffers[chan]->inputBufferIndex.resize(overlap);
     for (int i = 0; i < overlap; i++) {
-      IObuffers[chan]->inputBuffer[i].resize(forwardFFT->getSize(), 0.0f);
+      IObuffers[chan]->inputBuffer[i].resize(fftSize * 2, 0.0f);
       IObuffers[chan]->inputBufferIndex[i] = 0 - hopSize * i;
     }
     IObuffers[chan]->outputQueue.resize(fftSize * 2, 0.0f);
   }
-  frequencyDomainData.resize(fftSize, 0.0f);
-  transformedData.resize(fftSize, 0.0f);
+  // frequencyDomainData.resize(fftSize, 0.0f);
+  transformedData.resize(fftSize * 2, 0.0f);
 
   // add parameters
   addParameter(fftOrderMenu = new juce::AudioParameterChoice(
@@ -108,42 +108,49 @@ void DilateProcessor::pushNextSampleIntoBuffers(float sample, int chan) noexcept
   }
 }
 
-void DilateProcessor::dilate(std::vector<std::complex<float>>& buffer, int chan) {
+void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 
   // get amplitude of buffer before processing
+  // auto maxLevel = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize / 2);
 
   // window the samples
   for (int i = 0; i < fftSize; i++) buffer[i] *= window[i];
-  // perform FFT (would in-place be faster? realonly?)
-  forwardFFT->perform(buffer.data(), frequencyDomainData.data(), false);
+
+  // perform FFT in place, returns interleaved real-imaginary values
+  forwardFFT->performRealOnlyForwardTransform(buffer.data(), true);
   // Manipulate bins ========================================================
   for (int i = 0; i < (fftSize / 2) + 1; i++) {
     float transformedIndex = ((i - focalBin) * (dilationFactor.getCurrentValue())) + focalBin;
     if (transformedIndex < (fftSize / 2) && transformedIndex > 0) {
       // bin splitting for transformed indexes between bins
-      const unsigned j = floor(transformedIndex);
-      const unsigned k = j + 1;
-      const float t = transformedIndex - j;
-
-      transformedData[j] += frequencyDomainData[i] * (1 - t);
-      transformedData[k] += frequencyDomainData[i] * t;
+      const unsigned j = floor(transformedIndex) * 2;
+      const unsigned k = j + 2;
+      const float t = transformedIndex - floor(transformedIndex);
+      // Magnitude Accumulation
+      transformedData[j] += buffer[i * 2] * (1 - t);
+      transformedData[k] += buffer[i * 2] * t;
+      // Phase Accumulation
+      transformedData[j + 1] += buffer[i * 2 + 1] * (1 - t);
+      transformedData[k + 1] += buffer[i * 2 + 1] * t;
     }
   }
+
   // ========================================================================
-  for (int i = (fftSize / 2) + 1; i < fftSize; i++) {  // DFT mirroring semantics
-    transformedData[i].real(transformedData[fftSize - i].real());
-    transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
-  }
+  // for (int i = (fftSize / 2) + 1; i < fftSize; i++) {  // DFT mirroring semantics
+  //   transformedData[i].real(transformedData[fftSize - i].real());
+  //   transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
+  // }
+
   // Inverse FFT
-  inverseFFT->perform(transformedData.data(), buffer.data(), true);
+  inverseFFT->performRealOnlyInverseTransform(transformedData.data());
   for (int i = 0; i < fftSize; i++) {
     IObuffers[chan]->outputQueue[(IObuffers[chan]->outputQueueIndex + i) %
                                  IObuffers[chan]->outputQueue.size()] +=
-      buffer[i].real() * window[i] / overlap;
-    transformedData[i] = std::complex<float>(0.0f, 0.0f);
-    frequencyDomainData[i] = std::complex<float>(0.0f, 0.0f);
+      transformedData[i] * window[i] / overlap;
+    transformedData[i] = 0;
+    // frequencyDomainData[i] = std::complex<float>(0.0f, 0.0f);
   }
 }
 
@@ -159,13 +166,13 @@ void DilateProcessor::changeOrder(int order) {
   hopSize = fftSize / overlap;
   for (int chan = 0; chan < IObuffers.size(); chan++) {
     for (int i = 0; i < overlap; i++) {
-      IObuffers[chan]->inputBuffer[i].resize(fftSize, 0.0f);
+      IObuffers[chan]->inputBuffer[i].resize(fftSize * 2, 0.0f);
       IObuffers[chan]->inputBufferIndex[i] = 0 - hopSize * i;
     }
     IObuffers[chan]->outputQueue.resize(fftSize * 2, 0.0f);
     IObuffers[chan]->outputQueueIndex = 0;
   }
-  frequencyDomainData.resize(fftSize, 0.0f);
+  // frequencyDomainData.resize(fftSize, 0.0f);
   transformedData.resize(fftSize, 0.0f);
 }
 

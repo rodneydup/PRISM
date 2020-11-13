@@ -51,7 +51,7 @@ class DilateProcessor : public juce::AudioProcessor {
   void pushNextSampleIntoBuffers(float sample, int chan) noexcept;
 
   // FFT, transform, IFFT, and add to output queue a buffer that is ready
-  void dilate(std::vector<std::complex<float>>& buffer, int chan);
+  void dilate(std::vector<float>& buffer, int chan);
 
   // Change the fft Order/window size at runtime. Note that it
   // takes an ORDER, i.e. x where 2^x is the new window size.
@@ -68,7 +68,7 @@ class DilateProcessor : public juce::AudioProcessor {
   int windowIndex = 3;
 
   struct IObuffer {
-    std::vector<std::vector<std::complex<float>>> inputBuffer;
+    std::vector<std::vector<float>> inputBuffer;
     std::vector<int> inputBufferIndex;
     std::vector<float> outputQueue;
     int outputQueueIndex = 0;
@@ -78,8 +78,8 @@ class DilateProcessor : public juce::AudioProcessor {
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
   std::unique_ptr<juce::dsp::FFT> inverseFFT;
   std::vector<float> window;
-  std::vector<std::complex<float>> frequencyDomainData;
-  std::vector<std::complex<float>> transformedData;
+  // std::vector<std::complex<float>> frequencyDomainData;
+  std::vector<float> transformedData;
 
   std::vector<std::unique_ptr<IObuffer>> IObuffers;
   int overlap = 4;
@@ -88,6 +88,7 @@ class DilateProcessor : public juce::AudioProcessor {
   juce::AudioParameterChoice* fftOrderMenu;
   juce::AudioParameterFloat* focalPointSlider;
   juce::AudioParameterFloat* dilationFactorSlider;
+  juce::AudioParameterBool* bypass;
 
   juce::SmoothedValue<float> focalPoint;
   juce::SmoothedValue<float> dilationFactor;
