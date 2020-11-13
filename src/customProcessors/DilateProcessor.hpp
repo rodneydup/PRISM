@@ -65,7 +65,7 @@ class DilateProcessor : public juce::AudioProcessor {
 
   int fftOrder = 10;
   int fftSize = 1 << fftOrder;
-  int windowIndex = 2;
+  int windowIndex = 3;
 
   struct IObuffer {
     std::vector<std::vector<std::complex<float>>> inputBuffer;
@@ -82,7 +82,7 @@ class DilateProcessor : public juce::AudioProcessor {
   std::vector<std::complex<float>> transformedData;
 
   std::vector<std::unique_ptr<IObuffer>> IObuffers;
-  int overlap = 8;
+  int overlap = 4;
   int hopSize = fftSize / overlap;
 
   juce::AudioParameterChoice* fftOrderMenu;

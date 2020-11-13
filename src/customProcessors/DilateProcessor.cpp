@@ -1,6 +1,6 @@
 // To Do:
 // figure out phase??!!
-//
+// Fix witching from stereo to mono
 
 #include "DilateProcessor.hpp"
 
@@ -13,7 +13,7 @@ DilateProcessor::DilateProcessor()
                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
     ) {
-  for (int i = 0; i < getBusesLayout().getMainInputChannels(); i++) {
+  for (int i = 0; i < 2; i++) {
     IObuffers.push_back(std::make_unique<IObuffer>());
   }
   forwardFFT = std::make_unique<juce::dsp::FFT>(fftOrder);
@@ -129,15 +129,15 @@ void DilateProcessor::dilate(std::vector<std::complex<float>>& buffer, int chan)
                               abs(frequencyDomainData[i].real() * (1 - t)));
       transformedData[k].real(transformedData[k].real() + abs(frequencyDomainData[i].real() * t));
       // add phases
-      transformedData[j].imag(transformedData[j].imag() +
-                              (frequencyDomainData[i].imag() * (1 - t)));
-      transformedData[k].imag(transformedData[k].imag() + (frequencyDomainData[i].imag() * t));
+      // transformedData[j].imag(transformedData[j].imag() +
+      //                         (frequencyDomainData[i].imag() * (1 - t)));
+      // transformedData[k].imag(transformedData[k].imag() + (frequencyDomainData[i].imag() * t));
     }
   }
   // ========================================================================
   for (int i = (fftSize / 2) + 1; i < fftSize; i++) {  // DFT mirroring semantics
     transformedData[i].real(transformedData[fftSize - i].real());
-    transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
+    // transformedData[i].imag(-1 * transformedData[fftSize - i].imag());
   }
   // Inverse FFT
   inverseFFT->perform(transformedData.data(), buffer.data(), true);
