@@ -60,7 +60,7 @@ DilateProcessor::DilateProcessor()
   addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
 
   MakeUpFactor.reset(4096);
-  makeUpValues.resize(10, 0.0f);
+  makeUpValues.resize(40, 0.0f);
 }
 
 DilateProcessor::~DilateProcessor() {}
@@ -89,8 +89,7 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
           // }
 
           // copy next value from output queue into buffer
-          channelData[i] = IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex] *
-                           MakeUpFactor.getCurrentValue();
+          channelData[i] = IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex];
           IObuffers[chan]->outputQueue[IObuffers[chan]->outputQueueIndex] = 0;
           IObuffers[chan]->outputQueueIndex =
             (IObuffers[chan]->outputQueueIndex + 1) % IObuffers[chan]->outputQueue.size();
@@ -99,7 +98,6 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
             // iterate smoothvalues
             focalPoint.getNextValue();
             dilationFactor.getNextValue();
-            MakeUpFactor.getNextValue();
           }
         }
         // find highest rms value on any channel
@@ -109,6 +107,7 @@ void DilateProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer,
         // }
       }
       // per buffer
+      MakeUpFactor.applyGain(audioBuffer, audioBuffer.getNumSamples());
       // set new targets for smoothvalues if slider changed
       if (focalPointSlider->get() != focalPoint.getTargetValue())
         focalPoint.setTargetValue(focalPointSlider->get());
@@ -145,16 +144,10 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
   focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
 
-  // double makeUpFactor = 1;
   double rmsPost = 0;
   double rmsPre = 0;
 
   if (*makeUpGain) {
-    // get peak amplitude of buffer before processing for normalization
-    // auto minmaxPre = juce::FloatVectorOperations::findMinAndMax(buffer.data(), fftSize);
-    // makeUpFactor = abs(minmaxPre.getEnd()) > abs(minmaxPre.getStart()) ? abs(minmaxPre.getEnd())
-    //                                                                    :
-    //                                                                    abs(minmaxPre.getStart());
     for (int i = 0; i < fftSize; i++) rmsPre += pow(buffer[i], 2);
     rmsPre = sqrt(rmsPre / fftSize);
   }
@@ -167,7 +160,7 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // Manipulate bins ========================================================
   for (int i = 0; i < (fftSize / 2) + 1; i++) {
     float transformedIndex = ((i - focalBin) * (dilationFactor.getCurrentValue())) + focalBin;
-    if (transformedIndex < (fftSize / 2) && transformedIndex > 0) {
+    if (transformedIndex < (fftSize / 2) - 2 && transformedIndex > 2) {
       // bin splitting for transformed indexes between bins
       const unsigned j = floor(transformedIndex) * 2;
       const unsigned k = j + 2;
@@ -186,16 +179,13 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // Inverse FFT
   inverseFFT->performRealOnlyInverseTransform(transformedData.data());
   if (*makeUpGain) {
-    // auto minmaxPost = juce::FloatVectorOperations::findMinAndMax(transformedData.data(),
-    // fftSize); double peakPost = abs(minmaxPost.getEnd()) > abs(minmaxPost.getStart())
-    //                     ? abs(minmaxPost.getEnd())
-    //                     : abs(minmaxPost.getStart());
-    // makeUpFactor = makeUpFactor / peakPost;
-
     for (int i = 0; i < fftSize; i++) rmsPost += pow(transformedData[i], 2);
     rmsPost = sqrt(rmsPost / fftSize);
     makeUpValuesWritePointer = (makeUpValuesWritePointer + 1) % makeUpValues.size();
-    makeUpValues[makeUpValuesWritePointer] = rmsPre / rmsPost;
+    if (rmsPost > 0)
+      makeUpValues[makeUpValuesWritePointer] = rmsPre / rmsPost;
+    else
+      makeUpValues[makeUpValuesWritePointer] = 1.0;
     MakeUpFactor.setTargetValue(std::accumulate(makeUpValues.begin(), makeUpValues.end(), 0.0f) /
                                 makeUpValues.size());
   } else {

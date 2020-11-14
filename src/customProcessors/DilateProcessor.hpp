@@ -67,7 +67,7 @@ class DilateProcessor : public juce::AudioProcessor {
 
   int fftOrder = 10;
   int fftSize = 1 << fftOrder;
-  int windowIndex = 3;
+  int windowIndex = 2;
 
   struct IObuffer {
     std::vector<std::vector<float>> inputBuffer;
