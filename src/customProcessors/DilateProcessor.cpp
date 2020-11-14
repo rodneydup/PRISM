@@ -60,7 +60,7 @@ DilateProcessor::DilateProcessor()
   addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
 
   MakeUpFactor.reset(4096);
-  makeUpValues.resize(40, 0.0f);
+  makeUpValues.resize(10, 0.0f);
 }
 
 DilateProcessor::~DilateProcessor() {}
@@ -142,7 +142,8 @@ void DilateProcessor::pushNextSampleIntoBuffers(float sample, int chan) noexcept
 
 void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // focalBin is the focalFreq converted to units of bins. Used so much it's worth precalculating.
-  focalBin = (focalPoint.getCurrentValue() / (getSampleRate() / fftSize));
+  // (sr / fftSize is the bin size)
+  focalBin = focalPoint.getCurrentValue() / (getSampleRate() / fftSize);
 
   double rmsPost = 0;
   double rmsPre = 0;
@@ -158,9 +159,9 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   // perform FFT in place, returns interleaved real-imaginary values
   forwardFFT->performRealOnlyForwardTransform(buffer.data(), true);
   // Manipulate bins ========================================================
-  for (int i = 0; i < (fftSize / 2) + 1; i++) {
+  for (int i = 1; i < fftSize / 2; i++) {
     float transformedIndex = ((i - focalBin) * (dilationFactor.getCurrentValue())) + focalBin;
-    if (transformedIndex < (fftSize / 2) - 2 && transformedIndex > 2) {
+    if (transformedIndex < fftSize / 2 && transformedIndex > 1) {
       // bin splitting for transformed indexes between bins
       const unsigned j = floor(transformedIndex) * 2;
       const unsigned k = j + 2;
@@ -178,6 +179,7 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
 
   // Inverse FFT
   inverseFFT->performRealOnlyInverseTransform(transformedData.data());
+
   if (*makeUpGain) {
     for (int i = 0; i < fftSize; i++) rmsPost += pow(transformedData[i], 2);
     rmsPost = sqrt(rmsPost / fftSize);

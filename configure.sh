@@ -10,4 +10,4 @@ mkdir build
 mkdir bin
 
 cd build
-cmake ..
+cmake -G "Unix Makefiles" ..

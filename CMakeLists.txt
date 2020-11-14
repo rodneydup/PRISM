@@ -80,6 +80,7 @@ JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${APP_NAME},JUCE_PROJECT_NAME>"
 JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${APP_NAME},JUCE_VERSION>"
 JUCE_DISPLAY_SPLASH_SCREEN=0
 JUCE_JACK=1
+JUCE_DSP_USE_SHARED_FFTW=1    
 JUCE_VST3_CAN_REPLACE_VST2=0                # If true requires vst2 SDK which I don't have so it has to be false    
 )
 
@@ -149,7 +150,8 @@ target_compile_definitions(${PLUGIN_NAME} PUBLIC
     JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${PLUGIN_NAME},JUCE_VERSION>"
     JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_JACK=1
-    JUCE_VST3_CAN_REPLACE_VST2=0                # If true requires vst2 SDK which I don't have so it has to be false    
+    JUCE_DSP_USE_SHARED_FFTW=1    
+    JUCE_VST3_CAN_REPLACE_VST2=0                # If true requires vst2 SDK which I don't have so it has to be false
     )
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
