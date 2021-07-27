@@ -57,7 +57,7 @@ MainComponent::MainComponent()
   audioGraph->addConnection(
     {{dilateNode->nodeID, 1}, {audioOutputNode->nodeID, 1}});  // connect dilate R to output R
   audioGraph->addConnection(
-    {{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});  // connect dilate to spectrogram
+    {{dilateNode->nodeID, 0}, {spectrogramNode->nodeID, 0}});  // connect dilate L to spectrogram
 
   addAndMakeVisible(audioSettings.button.get());
   addAndMakeVisible(dilateEditor.get());

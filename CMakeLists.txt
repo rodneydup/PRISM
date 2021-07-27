@@ -9,7 +9,7 @@ set(PLUGIN_NAME PRISM-Dilate-Plugin)
 # `project()` command. `project()` sets up some helpful variables that describe source/binary
 # directories, and the current project version. This is a standard CMake command.
 
-project(${APP_NAME}_APP VERSION 0.5)
+project(${APP_NAME}_APP VERSION 0.6)
 
 # If you've installed JUCE somehow (via a package manager, or directly using the CMake install
 # target), you'll need to tell this project that it depends on the installed copy of JUCE. If you've
@@ -26,8 +26,6 @@ JUCE_COMPANY_NAME "Rodney DuPlessis"
 JUCE_COMPANY_WEBSITE "www.rodneyduplessis.com"
 JUCE_COMPANY_EMAIL "rodney@rodneyduplessis.com")
 
-#compile pedal
-add_subdirectory(pedal)
 
 # If your app depends the VST2 SDK, perhaps to host VST2 plugins, CMake needs to be told where
 # to find the SDK on your system. This setup should be done before calling `juce_add_gui_app`.
@@ -101,7 +99,6 @@ JUCE_VST3_CAN_REPLACE_VST2=0                # If true requires vst2 SDK which I 
 
 target_link_libraries(${APP_NAME} PRIVATE
 # GuiAppData            # If we'd created a binary data target, we'd link to it here
-pedal
 juce::juce_gui_basics
 juce::juce_audio_devices
 juce::juce_audio_utils
@@ -156,7 +153,6 @@ target_compile_definitions(${PLUGIN_NAME} PUBLIC
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     # GuiAppData            # If we'd created a binary data target, we'd link to it here
-    pedal
     juce::juce_gui_basics
     juce::juce_audio_devices
     juce::juce_audio_utils
