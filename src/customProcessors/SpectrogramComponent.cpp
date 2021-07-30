@@ -52,8 +52,8 @@ void SpectrogramComponent::pushNextSampleIntoFifo(float sample) noexcept {
 }
 
 void SpectrogramComponent::drawNextLineOfSpectrogram() {
-  auto rightHandEdge = spectrogramImage.getWidth() - 1;
-  auto imageHeight = spectrogramImage.getHeight();
+  int rightHandEdge = spectrogramImage.getWidth() - 1;
+  int imageHeight = spectrogramImage.getHeight();
 
   // first, shuffle our image leftwards by 1 pixel..
   spectrogramImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
@@ -65,13 +65,14 @@ void SpectrogramComponent::drawNextLineOfSpectrogram() {
   forwardFFT->performFrequencyOnlyForwardTransform(fftData.data());
   // find the range of values produced, so we can scale our rendering to
   // show up the detail clearly
-  auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2);
+  juce::Range<float> maxLevel =
+    juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2);
 
   for (auto y = 1; y < imageHeight; ++y) {
-    auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
-    auto fftDataIndex =
+    float skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
+    size_t fftDataIndex =
       (size_t)juce::jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
-    auto level =
+    float level =
       juce::jmap(fftData[fftDataIndex], 0.0f, juce::jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
 
     spectrogramImage.setPixelAt(rightHandEdge, y, juce::Colour::fromHSV(level, 1.0f, level, 1.0f));
@@ -136,7 +137,7 @@ SpectrogramComponent::Editor::~Editor() {}
 void SpectrogramComponent::Editor::paint(juce::Graphics& g) {
   g.fillAll(juce::Colours::black);
   g.setOpacity(1.0f);
-  // Just getting a slice of the parent window's canvas. Note, removeFromBottom probably isn't what
+  // Just getting a slice of the parent window's canvas. Note: removeFromBottom probably isn't what
   // you think: it actually takes the given rectangle (in this case the parent window's
   // localBounds), and slices a bit (250 pixels in this case) off the bottom, returning that
   // rectangle. This is what we store in "drawingCanvas" to put our spectrogram in. Also, behind the
@@ -144,6 +145,7 @@ void SpectrogramComponent::Editor::paint(juce::Graphics& g) {
   // localBounds are smaller by 250 pixels from the bottom.
   drawingCanvas = getParentComponent()->getLocalBounds().removeFromBottom(250);
   setBounds(drawingCanvas);
+
   // More removeFromBottom to slice a chunk in which to draw our parameter menus. Here I also use
   // "withLeft" to move the left edge of the menu over to make room for the label.
   paramSection = getLocalBounds().removeFromTop(25).withLeft(100);

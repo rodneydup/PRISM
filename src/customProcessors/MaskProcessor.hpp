@@ -1,26 +1,34 @@
 
-#ifndef DilateProcessor_hpp
-#define DilateProcessor_hpp
+#ifndef MaskProcessor_hpp
+#define MaskProcessor_hpp
 
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_dsp/juce_dsp.h>
 #include <juce_gui_extra/juce_gui_extra.h>
+#include <juce_osc/juce_osc.h>
 
 #include <fstream>
 #include <iostream>
 
-class DilateProcessor : public juce::AudioProcessor {
+class MaskProcessor
+  : public juce::AudioProcessor,
+    private juce::OSCReceiver,
+    juce::OSCReceiver::ListenerWithOSCAddress<juce::OSCReceiver::MessageLoopCallback> {
  public:
-  DilateProcessor();
+  MaskProcessor();
 
   juce::AudioProcessorEditor* createEditor() override {
-    return new juce::GenericAudioProcessorEditor(*this);
+    auto editor = new juce::GenericAudioProcessorEditor(*this);
+    editor->setResizeLimits(200, 200, 1500, 1000);
+    editor->setResizable(true, true);
+    editor->setSize(600, 300);
+    return editor;
   }
 
   bool hasEditor() const override { return true; }
 
-  ~DilateProcessor();
+  ~MaskProcessor();
 
   //==============================================================================
   void prepareToPlay(double, int) override;
@@ -51,7 +59,7 @@ class DilateProcessor : public juce::AudioProcessor {
   void pushNextSampleIntoBuffers(float sample, int chan) noexcept;
 
   // FFT, edit bins, IFFT, and add to output queue a buffer that is ready
-  void dilate(std::vector<float>& buffer, int chan);
+  void mask(std::vector<float>& buffer, int chan);
 
   // Change the fft Order/window size at runtime. Note that it
   // takes an ORDER, i.e. x where 2^x is the new window size.
@@ -78,7 +86,6 @@ class DilateProcessor : public juce::AudioProcessor {
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
   std::unique_ptr<juce::dsp::FFT> inverseFFT;
   std::vector<float> window;
-  std::vector<float> transformedData;
   std::vector<float> makeUpValues;
   int makeUpValuesWritePointer;
 
@@ -87,53 +94,52 @@ class DilateProcessor : public juce::AudioProcessor {
   int hopSize = fftSize / overlap;
 
   juce::AudioParameterChoice* fftOrderMenu;
-  juce::AudioParameterFloat* focalPointSlider;
-  juce::AudioParameterFloat* dilationFactorSlider;
   juce::AudioParameterBool* bypass;
   juce::AudioParameterBool* makeUpGain;
-  juce::AudioParameterBool* dilateAlgorithm;
+  juce::AudioParameterBool* oscOn;
+  juce::AudioParameterFloat* maskedBinsSlider;
+  juce::AudioParameterFloat* unmaskedBinsSlider;
+  juce::AudioParameterInt* maskChangeIntervalSlider;
+  juce::Label* oscAddress;
 
-  juce::SmoothedValue<float> focalPoint[2];
-  juce::SmoothedValue<float> dilationFactor[2];
+  std::vector<bool> bins[2];
+  std::list<std::vector<bool>::reference> unmaskedBins[2];
+  std::list<std::vector<bool>::reference> maskedBins[2];
+  std::list<std::vector<bool>::reference>::iterator maskedIt;
+  std::list<std::vector<bool>::reference>::iterator unmaskedIt;
+
+  int framecounter = 0;
 
   juce::SmoothedValue<float> MakeUpFactor;
   // float MakeUpFactor = 1.0;
 
-  float focalBin;
-
   std::function<juce::String(float value, int maximumStringLength)> stringFromValue =
-    [](float value, int maximumStringLength) {
-      int precision = 3;
-      if (value >= 10000)
-        precision = 0;
-      else if (value >= 1000)
-        precision = 1;
-      else if (value >= 100)
-        precision = 2;
+    [&](float value, int maximumStringLength) {
+      value = value * (fftSize / 2);
       std::ostringstream out;
-      out << std::fixed << std::setprecision(precision) << value;
+      out << std::fixed << std::setprecision(0) << value;
       return out.str();
     };
 
-  std::function<juce::String(float value, int maximumStringLength)> stringFromValueHz =
-    [](float value, int maximumStringLength) {
-      int precision = 3;
-      if (value >= 10000)
-        precision = 0;
-      else if (value >= 1000)
-        precision = 1;
-      else if (value >= 100)
-        precision = 2;
-      std::ostringstream out;
-      out << std::fixed << std::setprecision(precision) << value << " Hz";
-      return out.str();
-    };
-
-  std::function<float(const juce::String& text)> valueFromString = [](const juce::String& text) {
-    return text.getFloatValue();
+  std::function<float(const juce::String& text)> valueFromString = [&](const juce::String& text) {
+    return text.getFloatValue() / (fftSize / 2);
   };
 
-  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DilateProcessor)
+  std::function<juce::String(int value, int maximumStringLength)> stringFromValueInt =
+    [](int value, int maximumStringLength) {
+      std::ostringstream out;
+      out << value;
+      return out.str();
+    };
+
+  std::function<int(const juce::String& text)> valueFromStringInt = [](const juce::String& text) {
+    return text.getIntValue();
+  };
+
+  //===================================== OSC
+  void oscMessageReceived(const juce::OSCMessage& message) override;
+
+  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MaskProcessor)
 };
 
 #endif

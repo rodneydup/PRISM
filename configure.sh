@@ -7,7 +7,8 @@ cd "$Dir"
 git submodule update --init --recursive
 
 mkdir build
-mkdir bin
+mkdir -p bin/Release
+mkdir -p bin/Debug
 
 cd build
-cmake -G "Unix Makefiles" ..
+cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ..
