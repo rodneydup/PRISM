@@ -11,9 +11,9 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 // our components
-#include "customProcessors/AudioSettingsComponent.hpp"
-#include "customProcessors/DilateProcessor.hpp"
-#include "customProcessors/SpectrogramComponent.hpp"
+#include "Processors/AudioSettingsComponent.hpp"
+#include "Processors/DilateProcessor.hpp"
+#include "Processors/SpectrogramComponent.hpp"
 
 //==============================================================================
 /*

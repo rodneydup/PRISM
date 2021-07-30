@@ -57,9 +57,9 @@ JUCE_COMPANY_EMAIL "rodney@rodneyduplessis.com")
 # target_sources(${APP_NAME} PRIVATE
 #     src/Main.cpp
 #     src/MainComponent.cpp
-#     src/customProcessors/AudioSettingsComponent.cpp
-#     src/customProcessors/DilateProcessor.cpp
-#     src/customProcessors/SpectrogramComponent.cpp
+#     src/Processors/AudioSettingsComponent.cpp
+#     src/Processors/DilateProcessor.cpp
+#     src/Processors/SpectrogramComponent.cpp
 #     )
 
 #     # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
@@ -137,7 +137,7 @@ juce_add_plugin(${PLUGIN_NAME}
     PRODUCT_NAME ${PLUGIN_NAME})           # The name of the final executable, which can differ from the target name
 
 target_sources(${PLUGIN_NAME} PRIVATE
-    src/customProcessors/DilateProcessor.cpp
+    src/Processors/DilateProcessor.cpp
     )
 
 target_compile_definitions(${PLUGIN_NAME} PUBLIC
@@ -193,7 +193,7 @@ juce_add_plugin(${PLUGIN_NAME}
     PRODUCT_NAME ${PLUGIN_NAME})           # The name of the final executable, which can differ from the target name
 
 target_sources(${PLUGIN_NAME} PRIVATE
-    src/customProcessors/MaskProcessor.cpp
+    src/Processors/MaskProcessor.cpp
     )
 
 target_compile_definitions(${PLUGIN_NAME} PUBLIC
