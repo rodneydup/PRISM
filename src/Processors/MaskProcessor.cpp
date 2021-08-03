@@ -65,7 +65,7 @@ MaskProcessor::MaskProcessor()
   addParameter(bypass = new juce::AudioParameterBool("bypass", "Bypass", 0));
   addParameter(oscOn = new juce::AudioParameterBool("oscOn", "OSC On", 0));
 
-  oscAddress = new juce::Label("OSCAddress", "OSC Address");
+  oscAddress = std::make_unique<juce::Label>("OSCAddress", "OSC Address");
   oscAddress->setEditable(true);
   oscAddress->setText("16447", juce::NotificationType::dontSendNotification);
 
@@ -78,7 +78,7 @@ MaskProcessor::MaskProcessor()
   juce::OSCReceiver::addListener(this, "/measurement");
 }
 
-MaskProcessor::~MaskProcessor() { delete oscAddress; }
+MaskProcessor::~MaskProcessor() {}
 
 //==============================================================================
 void MaskProcessor::prepareToPlay(double, int) {}

@@ -133,6 +133,12 @@ class DilateProcessor : public juce::AudioProcessor {
     return text.getFloatValue();
   };
 
+  template <typename T>
+  T sincInterpolation(T x) {
+    if (x == 0) return 1;
+    return sin(x * M_PI) / ((float)fftSize * sin(M_PI * x / (float)fftSize));
+  };
+
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DilateProcessor)
 };
 

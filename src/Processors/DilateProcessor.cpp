@@ -6,6 +6,14 @@
 // look at KlangFalter code for auto makeup gain
 // Make plugin remember parameters. ValueTree?
 
+// FIX THE ALGORITHM:
+// maybe stop trying to translate phase to new bins and just translate magnitude?
+// Use Sinc function for transformed bins that land between bins
+// phase will be necessary to calculate this bin smearing, right?
+// figured out sinc interpolation of magnitude, but what about phase?
+
+// should I rename this to Spectral homothety?
+
 #include "DilateProcessor.hpp"
 
 DilateProcessor::DilateProcessor()
@@ -163,42 +171,52 @@ void DilateProcessor::dilate(std::vector<float>& buffer, int chan) {
   forwardFFT->performRealOnlyForwardTransform(buffer.data(), true);
 
   // Manipulate bins
-  for (int i = 1; i < fftSize / 2; i++) {
-    float transformedIndex = ((i - focalBin) * (dilationFactor[chan].getCurrentValue())) + focalBin;
+  for (int preTransformedBin = 1; preTransformedBin < fftSize / 2; preTransformedBin++) {
+    // where to move the energy of this bin
+    float transformedIndex =
+      ((preTransformedBin - focalBin) * (dilationFactor[chan].getCurrentValue())) + focalBin;
 
+    // if the result ends up higher than nyquist or below zero, skip it
     if (transformedIndex < fftSize / 2 && transformedIndex > 1) {
-      // bin splitting for transformed indexes between bins
-      const unsigned j = floor(transformedIndex) * 2;
-      const unsigned k = j + 2;
-      const float t = transformedIndex - floor(transformedIndex);
-
       if (*dilateAlgorithm) {
-        // calculate magnitude and phase from complex number
-        const float magnitude = sqrt(pow(buffer[i * 2], 2) + pow(buffer[(i * 2) + 1], 2));
-        const float phase = atan2(buffer[(i * 2) + 1], buffer[i * 2]);
-        // // magnitude Accumulation
-        transformedData[j] = cos((phase + atan2(transformedData[j], transformedData[j + 1])) / 2) *
-                             (((magnitude * (1 - t)) +
-                               sqrt(pow(transformedData[j], 2) + pow(transformedData[j + 1], 2))) /
-                              2);
-        transformedData[k] =
-          cos((phase + atan2(transformedData[k], transformedData[k + 1])) / 2) *
-          (((magnitude * t) + sqrt(pow(transformedData[k], 2) + pow(transformedData[k + 1], 2))) /
-           2);
-        // // phase Accumulation
-        transformedData[j + 1] =
-          sin(((phase * (1 - t)) + atan2(transformedData[j], transformedData[j + 1])) / 2) *
-          ((magnitude + sqrt(pow(transformedData[j], 2) + pow(transformedData[j + 1], 2))) / 2);
-        transformedData[k + 1] =
-          sin(((phase * t) + atan2(transformedData[k], transformedData[k + 1])) / 2) *
-          ((magnitude + sqrt(pow(transformedData[k], 2) + pow(transformedData[k + 1], 2))) / 2);
+        // iterate over a range of bins near the result to account for spectral leakage
+        for (int interpBin = floor(transformedIndex - 4); interpBin <= floor(transformedIndex + 4);
+             interpBin++) {
+          if (interpBin > 0 && interpBin < fftSize / 2) {
+            const float magSource = sqrt(pow(buffer[preTransformedBin * 2], 2) +
+                                         pow(buffer[preTransformedBin * 2 + 1], 2));
+            const float phaseSource =
+              atan2(buffer[preTransformedBin * 2 + 1], buffer[preTransformedBin * 2]);
+            const float phaseTarget = atan2(buffer[interpBin * 2 + 1], buffer[interpBin * 2]);
+
+            // interpolate with a sinc function
+            const float interpScalar = sincInterpolation(transformedIndex - interpBin);
+
+            // const float phase = sin(2 * M_PI * transformedIndex * interpBin);
+
+            // // real
+            // transformedData[interpBin * 2] += buffer[preTransformedBin * 2] * interpScalar;
+            // // imaginary
+            // transformedData[interpBin * 2 + 1] += buffer[preTransformedBin * 2 + 1] *
+            // interpScalar;
+
+            // real
+            transformedData[interpBin * 2] += cos(phaseTarget) * magSource * interpScalar;
+            // imaginary
+            transformedData[interpBin * 2 + 1] += sin(phaseTarget) * magSource * interpScalar;
+          }
+        }
       } else {
+        // bin splitting for transformed indexes between bins
+        const unsigned j = floor(transformedIndex) * 2;
+        const unsigned k = j + 2;
+        const float t = transformedIndex - floor(transformedIndex);
         // // real part Accumulation
-        transformedData[j] += buffer[i * 2] * (1 - t);
-        transformedData[k] += buffer[i * 2] * t;
+        transformedData[j] += buffer[preTransformedBin * 2] * (1 - t);
+        transformedData[k] += buffer[preTransformedBin * 2] * t;
         // // imaginary part Accumulation
-        transformedData[j + 1] += buffer[(i * 2) + 1] * (1 - t);
-        transformedData[k + 1] += buffer[(i * 2) + 1] * t;
+        transformedData[j + 1] += buffer[preTransformedBin * 2 + 1] * (1 - t);
+        transformedData[k + 1] += buffer[preTransformedBin * 2 + 1] * t;
       }
     }
   }

@@ -100,7 +100,7 @@ class MaskProcessor
   juce::AudioParameterFloat* maskedBinsSlider;
   juce::AudioParameterFloat* unmaskedBinsSlider;
   juce::AudioParameterInt* maskChangeIntervalSlider;
-  juce::Label* oscAddress;
+  std::unique_ptr<juce::Label> oscAddress;
 
   std::vector<bool> bins[2];
   std::list<std::vector<bool>::reference> unmaskedBins[2];
